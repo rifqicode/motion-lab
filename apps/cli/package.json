@@ -1,0 +1,29 @@
+{
+  "name": "@studio/cli",
+  "version": "0.1.0",
+  "bin": {
+    "studio": "./dist/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "studio": "node ./dist/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.230",
+    "@remotion/renderer": "^4.0.230",
+    "@studio/diagrams": "workspace:*",
+    "@studio/motion": "workspace:*",
+    "@studio/renderer": "workspace:*",
+    "@studio/schema": "workspace:*",
+    "@studio/themes": "workspace:*",
+    "commander": "^12.1.0",
+    "remotion": "^4.0.230"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.4",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
+  }
+}

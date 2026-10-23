@@ -1,0 +1,347 @@
+{
+  "id": "postgres-cdc",
+  "title": "How PostgreSQL CDC Works",
+  "sourceText": "Change Data Capture (CDC) with PostgreSQL, WAL, Debezium, and Apache Kafka",
+  "language": "id-ID",
+  "aspectRatio": "9:16",
+  "fps": 30,
+  "themeId": "midnight-tech",
+  "sceneIds": ["scene-wal", "scene-debezium", "scene-consumer"],
+  "scenes": [
+    {
+      "id": "scene-wal",
+      "order": 1,
+      "type": "data-flow",
+      "title": "Write-Ahead Log (WAL)",
+      "narrationText": "PostgreSQL mencatat setiap transaksi perubahan data secara berurutan ke dalam Write-Ahead Log sebelum disimpan ke tabel utama.",
+      "durationFrames": 150,
+      "nodes": [
+        {
+          "id": "client",
+          "kind": "client",
+          "label": "Client App"
+        },
+        {
+          "id": "pg",
+          "kind": "database",
+          "label": "PostgreSQL"
+        },
+        {
+          "id": "wal",
+          "kind": "log",
+          "label": "WAL Engine"
+        }
+      ],
+      "edges": [
+        {
+          "id": "client-pg",
+          "from": "client",
+          "to": "pg",
+          "kind": "data-flow",
+          "label": "SQL Mutation"
+        },
+        {
+          "id": "pg-wal",
+          "from": "pg",
+          "to": "wal",
+          "kind": "data-flow",
+          "label": "Append Only"
+        }
+      ],
+      "animationCues": [
+        {
+          "id": "reveal-client",
+          "preset": "node-reveal",
+          "targetId": "client",
+          "startFrame": 0,
+          "durationFrames": 24,
+          "easing": "spring"
+        },
+        {
+          "id": "draw-client-pg",
+          "preset": "connector-draw",
+          "targetId": "client-pg",
+          "startFrame": 15,
+          "durationFrames": 30,
+          "easing": "ease-out"
+        },
+        {
+          "id": "reveal-pg",
+          "preset": "node-reveal",
+          "targetId": "pg",
+          "startFrame": 25,
+          "durationFrames": 24,
+          "easing": "spring"
+        },
+        {
+          "id": "draw-pg-wal",
+          "preset": "connector-draw",
+          "targetId": "pg-wal",
+          "startFrame": 45,
+          "durationFrames": 30,
+          "easing": "ease-out"
+        },
+        {
+          "id": "reveal-wal",
+          "preset": "node-reveal",
+          "targetId": "wal",
+          "startFrame": 55,
+          "durationFrames": 24,
+          "easing": "spring"
+        },
+        {
+          "id": "travel-sql",
+          "preset": "event-travel",
+          "targetId": "client-pg",
+          "startFrame": 75,
+          "durationFrames": 35,
+          "easing": "linear"
+        },
+        {
+          "id": "travel-wal",
+          "preset": "event-travel",
+          "targetId": "pg-wal",
+          "startFrame": 95,
+          "durationFrames": 35,
+          "easing": "linear"
+        },
+        {
+          "id": "pulse-wal",
+          "preset": "node-pulse",
+          "targetId": "wal",
+          "startFrame": 120,
+          "durationFrames": 25,
+          "easing": "ease-in-out"
+        }
+      ],
+      "subtitleSettings": {
+        "enabled": true,
+        "position": "bottom",
+        "fontSize": 36,
+        "highlightColor": "#38bdf8"
+      },
+      "revision": 1
+    },
+    {
+      "id": "scene-debezium",
+      "order": 2,
+      "type": "data-flow",
+      "title": "Logical Decoding & Debezium",
+      "narrationText": "Debezium membaca rekaman WAL melalui replication slot lalu mengonversinya menjadi event streaming ke Kafka cluster.",
+      "durationFrames": 180,
+      "nodes": [
+        {
+          "id": "wal-src",
+          "kind": "log",
+          "label": "PostgreSQL WAL"
+        },
+        {
+          "id": "debezium",
+          "kind": "service",
+          "label": "Debezium Connector"
+        },
+        {
+          "id": "kafka",
+          "kind": "queue",
+          "label": "Apache Kafka"
+        }
+      ],
+      "edges": [
+        {
+          "id": "wal-deb",
+          "from": "wal-src",
+          "to": "debezium",
+          "kind": "data-flow",
+          "label": "Logical Decoding"
+        },
+        {
+          "id": "deb-kafka",
+          "from": "debezium",
+          "to": "kafka",
+          "kind": "data-flow",
+          "label": "Produce Event"
+        }
+      ],
+      "animationCues": [
+        {
+          "id": "reveal-wal-src",
+          "preset": "node-reveal",
+          "targetId": "wal-src",
+          "startFrame": 0,
+          "durationFrames": 24,
+          "easing": "spring"
+        },
+        {
+          "id": "draw-wal-deb",
+          "preset": "connector-draw",
+          "targetId": "wal-deb",
+          "startFrame": 20,
+          "durationFrames": 30,
+          "easing": "ease-out"
+        },
+        {
+          "id": "reveal-debezium",
+          "preset": "node-reveal",
+          "targetId": "debezium",
+          "startFrame": 35,
+          "durationFrames": 24,
+          "easing": "spring"
+        },
+        {
+          "id": "draw-deb-kafka",
+          "preset": "connector-draw",
+          "targetId": "deb-kafka",
+          "startFrame": 55,
+          "durationFrames": 30,
+          "easing": "ease-out"
+        },
+        {
+          "id": "reveal-kafka",
+          "preset": "node-reveal",
+          "targetId": "kafka",
+          "startFrame": 70,
+          "durationFrames": 24,
+          "easing": "spring"
+        },
+        {
+          "id": "event-decode",
+          "preset": "event-travel",
+          "targetId": "wal-deb",
+          "startFrame": 95,
+          "durationFrames": 40,
+          "easing": "linear"
+        },
+        {
+          "id": "event-produce",
+          "preset": "event-travel",
+          "targetId": "deb-kafka",
+          "startFrame": 130,
+          "durationFrames": 40,
+          "easing": "linear"
+        }
+      ],
+      "subtitleSettings": {
+        "enabled": true,
+        "position": "bottom",
+        "fontSize": 36,
+        "highlightColor": "#38bdf8"
+      },
+      "revision": 1
+    },
+    {
+      "id": "scene-consumer",
+      "order": 3,
+      "type": "data-flow",
+      "title": "Stream Consumers",
+      "narrationText": "Aplikasi analitik dan search index mengonsumsi data secara asinkron tanpa membebani performa database utama.",
+      "durationFrames": 150,
+      "nodes": [
+        {
+          "id": "kafka-src",
+          "kind": "queue",
+          "label": "Kafka Topic"
+        },
+        {
+          "id": "analytics",
+          "kind": "service",
+          "label": "Real-time Analytics"
+        },
+        {
+          "id": "search-idx",
+          "kind": "database",
+          "label": "Elasticsearch"
+        }
+      ],
+      "edges": [
+        {
+          "id": "kafka-ana",
+          "from": "kafka-src",
+          "to": "analytics",
+          "kind": "data-flow",
+          "label": "Consume"
+        },
+        {
+          "id": "kafka-search",
+          "from": "kafka-src",
+          "to": "search-idx",
+          "kind": "data-flow",
+          "label": "Sync Index"
+        }
+      ],
+      "animationCues": [
+        {
+          "id": "reveal-kafka-src",
+          "preset": "node-reveal",
+          "targetId": "kafka-src",
+          "startFrame": 0,
+          "durationFrames": 24,
+          "easing": "spring"
+        },
+        {
+          "id": "draw-kafka-ana",
+          "preset": "connector-draw",
+          "targetId": "kafka-ana",
+          "startFrame": 20,
+          "durationFrames": 30,
+          "easing": "ease-out"
+        },
+        {
+          "id": "draw-kafka-search",
+          "preset": "connector-draw",
+          "targetId": "kafka-search",
+          "startFrame": 20,
+          "durationFrames": 30,
+          "easing": "ease-out"
+        },
+        {
+          "id": "reveal-analytics",
+          "preset": "node-reveal",
+          "targetId": "analytics",
+          "startFrame": 35,
+          "durationFrames": 24,
+          "easing": "spring"
+        },
+        {
+          "id": "reveal-search",
+          "preset": "node-reveal",
+          "targetId": "search-idx",
+          "startFrame": 40,
+          "durationFrames": 24,
+          "easing": "spring"
+        },
+        {
+          "id": "travel-ana",
+          "preset": "event-travel",
+          "targetId": "kafka-ana",
+          "startFrame": 70,
+          "durationFrames": 35,
+          "easing": "linear"
+        },
+        {
+          "id": "travel-search",
+          "preset": "event-travel",
+          "targetId": "kafka-search",
+          "startFrame": 90,
+          "durationFrames": 35,
+          "easing": "linear"
+        },
+        {
+          "id": "pulse-ana",
+          "preset": "node-pulse",
+          "targetId": "analytics",
+          "startFrame": 110,
+          "durationFrames": 25,
+          "easing": "ease-in-out"
+        }
+      ],
+      "subtitleSettings": {
+        "enabled": true,
+        "position": "bottom",
+        "fontSize": 36,
+        "highlightColor": "#38bdf8"
+      },
+      "revision": 1
+    }
+  ],
+  "revision": 1
+}
