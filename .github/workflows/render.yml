@@ -1,0 +1,34 @@
+name: Render MP4
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'package.json'
+      - '.github/workflows/render.yml'
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Render 1080x1920 60fps
+        run: npm run render
+      - name: Validate video
+        run: node scripts/validate-video.mjs
+      - name: Upload video artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: motion-lab-1080p60
+          path: out/motion-lab.mp4
+          if-no-files-found: warn
+          retention-days: 7
