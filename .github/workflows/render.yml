@@ -22,6 +22,8 @@ jobs:
         run: npm run typecheck
       - name: Render 1080x1920 60fps
         run: npm run render
+      - name: Install FFprobe
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Validate video
         run: node scripts/validate-video.mjs
       - name: Upload video artifact
