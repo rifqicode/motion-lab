@@ -13,7 +13,7 @@ const Device:React.FC<{t:number}>=({t})=>{
   <mesh position={[0,-1.65,0.125]}><planeGeometry args={[1.3,0.14]}/><meshBasicMaterial color="#4d7596"/></mesh>
  </group>;
 };
-export const Phone:React.FC=()=>{
+export const Phone:React.FC<{headline:string;subline?:string}>=({headline,subline})=>{
  const f=useCurrentFrame();const {fps,width,height}=useVideoConfig();const t=f/fps;
  const appear=reveal(t,0.45,0.8);
  return <>
@@ -23,8 +23,8 @@ export const Phone:React.FC=()=>{
   </ThreeCanvas>
   <div style={{position:'absolute',top:360,left:92,right:92,opacity:appear,transform:`translateY(${(1-appear)*45}px)`}}>
    <div style={{fontSize:30,letterSpacing:7,color:'#78eee7',fontWeight:700}}>01 / THE SPARK</div>
-   <div style={{fontSize:90,lineHeight:1.08,fontWeight:800,color:'#fff',marginTop:22}}>Every tap<br/>starts a journey.</div>
+   <div style={{fontSize:90,lineHeight:1.08,fontWeight:800,color:'#fff',marginTop:22}}>{headline.split('\n').map((line,i)=><React.Fragment key={i}>{i>0&&<br/>}{line}</React.Fragment>)}</div>
   </div>
-  <div style={{position:'absolute',top:1190,right:90,width:280,textAlign:'right',opacity:reveal(t,2,0.6),color:'#a3c9dc',fontSize:30}}>A single request.<br/>Infinite possibilities.</div>
+  <div style={{position:'absolute',top:1190,right:90,width:280,textAlign:'right',opacity:reveal(t,2,0.6),color:'#a3c9dc',fontSize:30}}>{subline}</div>
  </>;
 };
