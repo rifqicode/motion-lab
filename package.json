@@ -1,0 +1,27 @@
+{
+  "name": "motion-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts MotionLab out/motion-lab.mp4",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^9.1.0",
+    "@remotion/three": "^4.0.400",
+    "@remotion/cli": "^4.0.400",
+    "remotion": "^4.0.400",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.175.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.175.0",
+    "typescript": "^5.8.0"
+  }
+}
