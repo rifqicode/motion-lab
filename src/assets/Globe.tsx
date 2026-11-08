@@ -17,7 +17,7 @@ const Arc:React.FC<{from:Coord;to:Coord;t:number;index:number}>=({from,to,t,inde
  const geometry=new THREE.BufferGeometry().setFromPoints(path.slice(0,count));
  const particle=curve.getPoint(Math.max(0.001,Math.min(0.999,(t*0.34+index*0.21)%1)));
  return <group>
-  <line geometry={geometry}><lineBasicMaterial color="#69f8e9" transparent opacity={0.82}/></line>
+  <primitive object={new THREE.Line(geometry,new THREE.LineBasicMaterial({color:"#69f8e9",transparent:true,opacity:0.82}))}/>
   {visible>0&&<mesh position={particle.toArray()}><sphereGeometry args={[0.042,8,8]}/><meshBasicMaterial color="#dffffa"/></mesh>}
  </group>;
 };
