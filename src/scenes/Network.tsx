@@ -4,7 +4,7 @@ const clamp=(x:number)=>Math.max(0,Math.min(1,x));
 const smooth=(x:number)=>Easing.inOut(Easing.cubic)(clamp(x));
 const nodes=[{x:200,y:900,label:'DEVICE'},{x:550,y:760,label:'ROUTER'},{x:870,y:1050,label:'CLOUD'}];
 const path='M200 900 C330 600 440 600 550 760 S770 1180 870 1050';
-export const Network:React.FC=()=>{
+export const Network:React.FC<{headline:string;subline?:string}>=({headline,subline})=>{
  const frame=useCurrentFrame();const {fps}=useVideoConfig();const t=frame/fps;
  const travel=smooth((t-0.8)/2.6);
  return <svg width="1080" height="1920" viewBox="0 0 1080 1920" style={{position:'absolute',inset:0}}>
@@ -13,8 +13,7 @@ export const Network:React.FC=()=>{
    <filter id="glow"><feGaussianBlur stdDeviation="14"/></filter>
   </defs>
   <text x="90" y="385" fill="#76e8de" fontSize="30" letterSpacing="7" fontWeight="700">02 / THE CONNECTION</text>
-  <text x="90" y="485" fill="#fff" fontSize="88" fontWeight="800">Information</text>
-  <text x="90" y="590" fill="#fff" fontSize="88" fontWeight="800">in motion.</text>
+  <text x="90" y="485" fill="#fff" fontSize="88" fontWeight="800">{headline.split('\n').map((line,i)=><React.Fragment key={i}>{i>0&&' '}{line}</React.Fragment>)}</text>
   <path d={path} stroke="#1c3c62" strokeWidth="17" fill="none"/>
   <path d={path} stroke="#45e6f2" strokeWidth="28" fill="none" opacity=".6" filter="url(#glow)" strokeDasharray="1250" strokeDashoffset={1250*(1-travel)}/>
   <path d={path} stroke="url(#line)" strokeWidth="9" strokeLinecap="round" fill="none" strokeDasharray="1250" strokeDashoffset={1250*(1-travel)}/>
@@ -25,6 +24,6 @@ export const Network:React.FC=()=>{
    <text y="130" textAnchor="middle" fill="#e8ffff" fontSize="30" fontWeight="700">{n.label}</text>
   </g>})}
   {Array.from({length:16},(_,i)=>{const x=100+(i*167)%880;const y=680+(i*233)%600;return <circle key={i} cx={x} cy={y+Math.sin(t+i)*14} r={2+i%3} fill="#73dfe8" opacity={0.15+0.25*Math.sin(t+i)**2}/>})}
-  <text x="540" y="1490" textAnchor="middle" fill="#9ac8d7" fontSize="32">From device to destination</text>
+  <text x="540" y="1490" textAnchor="middle" fill="#9ac8d7" fontSize="32">{subline}</text>
  </svg>;
 };
