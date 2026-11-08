@@ -2,7 +2,7 @@ import React from 'react';
 import {Easing,useCurrentFrame,useVideoConfig} from 'remotion';
 import {ThreeCanvas} from '@remotion/three';
 const smooth=(x:number)=>Easing.inOut(Easing.cubic)(Math.max(0,Math.min(1,x)));
-export const Finale:React.FC=()=>{
+export const Finale:React.FC<{headline:string;subline?:string}>=({headline,subline})=>{
  const f=useCurrentFrame();const {fps,width,height}=useVideoConfig();const t=f/fps;
  const enter=smooth(t/1.1);const headline=smooth((t-0.85)/0.85);
  return <>
@@ -15,8 +15,8 @@ export const Finale:React.FC=()=>{
   </ThreeCanvas>
   <div style={{position:'absolute',top:340,left:90,color:'#7aece4',letterSpacing:7,fontSize:30,fontWeight:700}}>03 / THE BIG PICTURE</div>
   <div style={{position:'absolute',top:1260,left:70,right:70,textAlign:'center',opacity:headline,transform:`translateY(${(1-headline)*55}px)`}}>
-   <div style={{fontSize:112,fontWeight:900,color:'#fff',letterSpacing:-4}}>CONNECTED.</div>
-   <div style={{fontSize:38,color:'#a7d2df',marginTop:26}}>One tap. A world in motion.</div>
+   <div style={{fontSize:112,fontWeight:900,color:'#fff',letterSpacing:-4}}>{headline}</div>
+   <div style={{fontSize:38,color:'#a7d2df',marginTop:26}}>{subline}</div>
   </div>
  </>;
 };
