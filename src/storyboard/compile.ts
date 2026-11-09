@@ -11,7 +11,7 @@ export const compileStoryboard=(input:unknown)=>{
   if(ids.has(shot.id)) throw new Error(`Duplicate shot id: ${shot.id}`);
   ids.add(shot.id);
   const end=index===board.shots.length-1?VIDEO.durationInFrames:Math.round((from/VIDEO.fps+shot.durationSeconds)*VIDEO.fps);
-  const scene={id:shot.id,kind:shot.visual,from,duration:end-from,headline:shot.headline,subline:shot.subline,direction:shot.direction,assets:resolveShotAssets(shot.assets)};
+  const scene={id:shot.id,kind:shot.visual,from,duration:end-from,headline:shot.headline,subline:shot.subline,direction:shot.direction,assets:resolveShotAssets(shot.assets),graph:shot.graph};
   if(scene.duration<1) throw new Error(`Shot ${shot.id} is shorter than one frame`);
   from=end;
   return scene;
