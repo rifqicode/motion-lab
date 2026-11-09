@@ -1,4 +1,5 @@
 export const semanticAssets={
+ device:{id:'device',type:'procedural-3d',description:'Smartphone with illuminated screen'},
  router:{id:'router',type:'procedural-3d',description:'Wi-Fi router with antennae, status LEDs and directional data signal'},
  data_packet:{id:'data_packet',type:'svg',description:'Glowing packet moving along the connection path'},
  earth:{id:'earth',type:'procedural-3d',description:'Rotating spherical planet with network nodes'},
