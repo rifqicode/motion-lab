@@ -2,12 +2,13 @@ import React from 'react';
 import {useCurrentFrame,useVideoConfig} from 'remotion';
 import {ThreeCanvas} from '@remotion/three';
 import {Globe} from '../assets/Globe';
-import {reveal,cameraPush} from '../motion/presets';
-export const Finale:React.FC<{headline:string;subline?:string}>=({headline,subline})=>{
+import {reveal} from '../motion/presets';
+import {shotCamera,type ShotProps} from '../director/shot';
+export const Finale:React.FC<ShotProps>=({headline,subline,direction})=>{
  const f=useCurrentFrame();const {fps,width,height}=useVideoConfig();const t=f/fps;
  const headlineProgress=reveal(t,0.85,0.85);
  return <>
-  <ThreeCanvas width={width} height={height} style={{position:'absolute',inset:0}} camera={{position:[0,0,cameraPush(t,0,4,8.7,6.8)],fov:42}}>
+  <ThreeCanvas width={width} height={height} style={{position:'absolute',inset:0}} camera={{position:shotCamera(t,direction,8.7),fov:42}}>
    <ambientLight intensity={1.65}/><directionalLight position={[4,5,6]} intensity={3.6} color="#affff4"/><pointLight position={[-4,2,3]} intensity={60} color="#3d84ff"/>
    <Globe t={t}/>
   </ThreeCanvas>
