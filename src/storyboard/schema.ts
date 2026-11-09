@@ -1,9 +1,11 @@
 import {z} from 'zod';
+import {graphSchema} from '../graph/schema';
 export const shotSchema=z.object({
  id:z.string().min(1),
  narration:z.string().min(1),
  purpose:z.enum(['hook','explain','payoff']),
- visual:z.enum(['phone','network','finale']),
+ visual:z.enum(['phone','network','finale','graph']),
+ graph:graphSchema.optional(),
  durationSeconds:z.number().positive(),
  headline:z.string().min(1),
  subline:z.string().optional(),
