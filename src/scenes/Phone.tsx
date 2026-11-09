@@ -1,7 +1,8 @@
 import React from 'react';
 import {ThreeCanvas} from '@remotion/three';
 import {useCurrentFrame,useVideoConfig} from 'remotion';
-import {reveal,lerp,float,cameraPush} from '../motion/presets';
+import {reveal,lerp,float} from '../motion/presets';
+import {shotCamera,type ShotProps} from '../director/shot';
 const Device:React.FC<{t:number}>=({t})=>{
  const enter=reveal(t,0,1.1);const spin=lerp(-0.85,0.2,reveal(t,0,3.8));
  return <group position={[0,-0.3+(1-enter)*-2+float(t,2,0.07),0]} rotation={[0.1+float(t,1,0.045),spin,float(t,1.4,0.08)]} scale={0.7+enter*0.3}>
@@ -13,11 +14,11 @@ const Device:React.FC<{t:number}>=({t})=>{
   <mesh position={[0,-1.65,0.125]}><planeGeometry args={[1.3,0.14]}/><meshBasicMaterial color="#4d7596"/></mesh>
  </group>;
 };
-export const Phone:React.FC<{headline:string;subline?:string}>=({headline,subline})=>{
+export const Phone:React.FC<ShotProps>=({headline,subline,direction})=>{
  const f=useCurrentFrame();const {fps,width,height}=useVideoConfig();const t=f/fps;
  const appear=reveal(t,0.45,0.8);
  return <>
-  <ThreeCanvas width={width} height={height} style={{position:'absolute',inset:0}} camera={{position:[float(t,0.25,0.5),0,cameraPush(t,0,4,8.5,7.38)],fov:37}}>
+  <ThreeCanvas width={width} height={height} style={{position:'absolute',inset:0}} camera={{position:shotCamera(t,direction,8.5),fov:37}}>
    <ambientLight intensity={1.8}/><directionalLight position={[5,6,8]} intensity={3.2} color="#b8fff7"/><pointLight position={[-4,-2,3]} intensity={50} color="#317cff"/>
    <Device t={t}/>
   </ThreeCanvas>
