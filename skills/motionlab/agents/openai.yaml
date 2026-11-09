@@ -1,0 +1,4 @@
+interface:
+  display_name: "MotionLab"
+  short_description: "Direct and iterate cinematic motion graphics with Remotion"
+  default_prompt: "Use the MotionLab skill to plan, preview, and improve an animated explainer."
