@@ -1,13 +1,7 @@
-# Asset sourcing and generation
+# Asset representation
 
-Choose an asset representation based on motion needs:
-- Procedural Three.js: abstract networks, packets, geometric systems, objects that need controllable depth and motion.
-- SVG: crisp diagrams, arrows, labels, simple shapes.
-- Transparent raster: illustrations and visual textures that do not require full 3D rotation.
-- GLB/GLTF: complex 3D objects requiring genuine camera orbit or articulated motion.
+For the illustration-first workflow, read [SVG asset creation](svg-assets.md) and [consistency](asset-consistency.md). Agent-authored layered vector data is the initial generation mechanism and requires no paid provider. Code-native vectors live under `src/illustration/assets`; external media goes in `public/` and uses `staticFile()`.
 
-Reuse and cache assets; record their source, license and generation prompt where relevant. Generated images and models need human/agent visual inspection before use. For local media use `public/` and Remotion `staticFile()`.
+Use procedural Three.js or GLB when genuine camera orbit, depth or articulation adds explanatory value. The original graph renderer supports router, earth, device and data_packet. Its semantic catalog is not a universal model loader. Preserve its schema and adapters when adding 2D features.
 
-The current graph renderer supports a small hardcoded asset set; the semantic catalog is not a general-purpose runtime loader. A missing coffee grinder or coffee bean is not magically produced by the JSON schema. Implement and test the adapter before referencing new assets.
-
-Prefer consistent lighting, palette and perspective across shots over a mix of unrelated generated styles.
+A flattened raster can be a background, texture or deliberate cutout. It does not provide independent illustration layers automatically. Inspect any generated media before use and record source, license and generation prompt when applicable.

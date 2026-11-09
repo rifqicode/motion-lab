@@ -1,0 +1,51 @@
+body {
+  font: 16px Arial;
+  background: #f5f2ea;
+  color: #292c40;
+  margin: 32px;
+}
+h1 {
+  font-size: 28px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+figure {
+  margin: 0;
+  background: white;
+  padding: 12px;
+  border-radius: 12px;
+  break-inside: avoid;
+}
+img {
+  display: block;
+  width: 100%;
+  height: 360px;
+  object-fit: contain;
+}
+.compare {
+  position: relative;
+}
+.compare .after {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 50% 0 0);
+}
+figcaption {
+  padding-top: 10px;
+  word-break: break-word;
+}
+input {
+  width: 100%;
+}
+nav {
+  margin: 20px 0;
+}
+a {
+  margin-right: 20px;
+}
+.note {
+  color: #655d69;
+}

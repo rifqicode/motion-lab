@@ -1,24 +1,36 @@
 ---
 name: motionlab
-description: Direct and produce cinematic motion graphics using MotionLab's storyboard, Remotion engine, and iterative visual QA. Use when asked to create or revise animated explainer videos.
+description: Direct and produce illustrated or hybrid cinematic explainer videos with MotionLab's validated storyboard, layered SVG engine, Remotion preview, and visual QA.
 ---
 
-# MotionLab — agent-driven motion graphics
+# MotionLab — illustration-first motion graphics
 
-You are the creative director; MotionLab is the execution engine. Make visual decisions based on the story, not a fixed template. Follow these steps in order:
+This skill and its local references are the complete agent authoring guide. Before producing or revising a video, read all references below. Inspect the relevant source modules before changing their contracts. For a narrowly scoped maintenance task, consult the references that govern the affected behavior.
 
-1. **Brief and script.** Establish audience, purpose, aspect ratio, duration, voice and visual style. Draft concise narration and identify the visual evidence for each sentence.
-2. **Storyboard.** Read [storyboard.md](references/storyboard.md). Author or edit `src/storyboard/example.ts` and validate schema and timings. Prefer a declarative `graph` shot for available assets.
-3. **Asset plan.** Read [assets.md](references/assets.md). Reuse known assets first. If an asset is missing, generate it using the agent's available tools, inspect it, place it under `public/`, and wire a supported renderer. Do not pretend an asset exists because it is named in JSON.
-4. **Motion direction.** Read [motion.md](references/motion.md). Design a camera path and per-object entrance, emphasis, hold, and exit. Avoid making everything move continuously.
-5. **Preview and critique.** Read [visual-qa.md](references/visual-qa.md). Start `npm run studio` as soon as possible, inspect each shot and the full composition, then revise. If Studio cannot be opened, say so and use still-frame renders as a fallback.
-6. **Validate.** Run `npm run typecheck`, inspect visual frames, and fix issues. Render MP4 only when the user requests export or an MP4 deliverable.
+| Reference                                                 | Purpose                                                   |
+| --------------------------------------------------------- | --------------------------------------------------------- |
+| [Architecture](references/architecture.md)                | Source entry points, renderer ownership and compatibility |
+| [Storyboard](references/storyboard.md)                    | Validated shot data and compilation                       |
+| [Engine workflow](references/engine-workflow.md)          | Cue timing, formats, visual controls and preview commands |
+| [Style Bible](references/style-bible.md)                  | Palettes, shapes, strokes, materials and proportions      |
+| [Art direction](references/illustration-art-direction.md) | Visual evidence and storytelling decisions                |
+| [Asset representation](references/assets.md)              | Choose vector, raster or genuine 3D                       |
+| [SVG assets](references/svg-assets.md)                    | Generate, layer, validate and register illustrations      |
+| [Layered animation](references/layered-animation.md)      | Hierarchies, transforms, clips and masks                  |
+| [Motion](references/motion.md)                            | Entrance, action, hold, exit and deterministic tracks     |
+| [Camera](references/camera.md)                            | Framing, pan, zoom and parallax                           |
+| [Consistency](references/asset-consistency.md)            | Review the illustration family together                   |
+| [Visual QA](references/visual-qa.md)                      | Inspect real frames and report verification limits        |
 
-## Guardrails
-- Preserve user changes; do not overwrite surprising edits.
-- Keep animation deterministic using Remotion frame time; no CSS animations, wall-clock timers or unseeded randomness.
-- Follow the installed Remotion skills for API-specific guidance, especially remotion-best-practices, remotion-markup and remotion-studio. Verify API compatibility with this repository's installed Remotion version.
-- Do not claim visual quality or CI success from a successful commit alone.
-- Existing `phone`, `network`, `finale` scenes are examples, not mandatory templates.
-- You may extend React components, shaders and asset adapters when the declarative graph cannot express the shot; keep the storyboard contract valid.
-- Ask for approval before merging branches or publishing deliverables.
+## Production workflow
+
+1. Establish audience, story, duration and visual evidence. Default to `MOBILE_VIDEO`: portrait 1080×1920, 9:16, 60 FPS. The coffee film is an example, not a required template.
+2. Preserve user edits and the active feature branch. Author the storyboard, resolve asset needs, and generate missing layered vectors under the Style Bible.
+3. Choreograph independent objects and cause/effect with cues. Keep every animation deterministic from Remotion frame time.
+4. Preview early. Start Studio when appropriate; respect a request to leave it stopped and use PNG reports instead. Inspect standalone shots, action frames and full-film boundaries; fix visible issues.
+5. Run `npm run check`. Store generated frame evidence, reports and per-run QA notes under `out/`. Report actual inspections, corrections and anything unverified.
+6. Export MP4 only when explicitly requested. Ask before merging or publishing.
+
+Preserve the 3D graph and legacy scene contracts. Do not flatten independently animated parts into one PNG. Avoid CSS animation, wall-clock timing and unseeded randomness.
+
+For Remotion API work, read available remotion-best-practices, remotion-markup and remotion-studio guidance, or consult the official sources in the visual QA reference. Match APIs to installed Remotion 4.0.400; newer Interactive APIs are not assumed available.

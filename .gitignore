@@ -2,3 +2,7 @@ node_modules/
 out/
 dist/
 .env
+
+# Local briefs and editor preferences
+benchmarks/
+.vscode/

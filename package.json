@@ -6,22 +6,38 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts MotionLab out/motion-lab.mp4",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:engine": "node scripts/test-illustration.mjs",
+    "preview:coffee": "node scripts/coffee-stills.mjs",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test:engine",
+    "preview:report": "node scripts/preview-report.mjs",
+    "preview:assets": "node scripts/preview-report.mjs --assets-only"
   },
   "dependencies": {
     "@react-three/fiber": "^9.1.0",
-    "@remotion/three": "^4.0.400",
-    "@remotion/cli": "^4.0.400",
-    "remotion": "^4.0.400",
+    "@remotion/cli": "4.0.400",
+    "@remotion/three": "4.0.400",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "remotion": "4.0.400",
     "three": "^0.175.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.175.0",
-    "typescript": "^5.8.0"
+    "eslint": "10.14.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "16.5.0",
+    "prettier": "3.9.10",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "8.72.1"
   }
 }

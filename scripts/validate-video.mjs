@@ -1,12 +1,26 @@
-import {execFileSync} from 'node:child_process';
-import {existsSync,statSync} from 'node:fs';
-const file=process.argv[2]??'out/motion-lab.mp4';
-if(!existsSync(file)||statSync(file).size===0)throw new Error('Missing or empty MP4: '+file);
-const data=JSON.parse(execFileSync('ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=width,height,avg_frame_rate,nb_frames,duration,codec_name','-of','json',file],{encoding:'utf8'}));
-const stream=data.streams?.[0];
-if(!stream)throw new Error('No video stream');
-const fps=stream.avg_frame_rate.split('/').map(Number).reduce((a,b)=>a/b);
-const duration=Number(stream.duration);
-const frames=Number(stream.nb_frames);
-if(stream.width!==1080||stream.height!==1920||Math.abs(fps-60)>0.01||Math.abs(duration-15)>0.1||frames!==900||stream.codec_name!=='h264')throw new Error('Unexpected output: '+JSON.stringify(stream));
-console.log('Validated video:',stream);
+import { loadTypeScript } from './load-typescript.mjs';
+import { validateVideoMetadata } from './video-metadata.mjs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, statSync } from 'node:fs';
+const file = process.argv[2] ?? 'out/motion-lab.mp4';
+if (!existsSync(file) || statSync(file).size === 0)
+  throw new Error('Missing or empty MP4: ' + file);
+const data = JSON.parse(
+  execFileSync(
+    'ffprobe',
+    [
+      '-v',
+      'error',
+      '-select_streams',
+      'v:0',
+      '-show_entries',
+      'stream=width,height,avg_frame_rate,nb_frames,duration,codec_name',
+      '-of',
+      'json',
+      file,
+    ],
+    { encoding: 'utf8' },
+  ),
+);
+const { video } = loadTypeScript('../src/spec.ts');
+console.log('Validated video:', validateVideoMetadata(data.streams?.[0], video));
