@@ -15,7 +15,7 @@ export const Root:React.FC=()=> <>
  {scenes.map(shot=>{
   const Component=registry[shot.kind];
   const Preview:React.FC=()=> <AbsoluteFill style={{background:'radial-gradient(ellipse at center,#164463,#030b16)',fontFamily:'Arial,sans-serif'}}>
-   <Component headline={shot.headline} subline={shot.subline}/>
+   <Component headline={shot.headline} subline={shot.subline} direction={shot.direction} assets={shot.assets}/>
   </AbsoluteFill>;
   return <Composition key={shot.id} id={`Shot-${shot.id.replace(/[^a-zA-Z0-9-]/g,'-')}`} component={Preview} durationInFrames={shot.duration} fps={VIDEO.fps} width={VIDEO.width} height={VIDEO.height}/>;
  })}
