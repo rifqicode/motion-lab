@@ -2,12 +2,13 @@ import React from 'react';
 import {ThreeCanvas} from '@remotion/three';
 import {useCurrentFrame,useVideoConfig} from 'remotion';
 import {Router} from '../assets/Router';
-import {reveal,float} from '../motion/presets';
-export const Network:React.FC<{headline:string;subline?:string}>=({headline,subline})=>{
+import {reveal} from '../motion/presets';
+import {shotCamera,type ShotProps} from '../director/shot';
+export const Network:React.FC<ShotProps>=({headline,subline,direction})=>{
  const frame=useCurrentFrame();const {fps,width,height}=useVideoConfig();const t=frame/fps;
  const progress=reveal(t,1.25,2.4);
  return <>
-  <ThreeCanvas width={width} height={height} style={{position:'absolute',inset:0}} camera={{position:[float(t,0.4,0.35),0,7.5-Math.min(t,4)*0.18],fov:40}}>
+  <ThreeCanvas width={width} height={height} style={{position:'absolute',inset:0}} camera={{position:shotCamera(t,direction,7.5),fov:40}}>
    <ambientLight intensity={1.8}/><directionalLight position={[4,5,7]} intensity={3} color="#c4fff8"/><pointLight position={[-3,1,4]} intensity={45} color="#4b9fff"/>
    <Router t={t}/>
   </ThreeCanvas>
