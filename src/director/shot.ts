@@ -1,9 +1,10 @@
+import type {SceneGraph} from '../graph/schema';
 import type {Storyboard} from '../storyboard/schema';
 import {semanticAssets,type SemanticAssetId} from '../assets/semantic';
 import {cameraPush,float,reveal} from '../motion/presets';
 export type ShotDirection=Storyboard['shots'][number]['direction'];
 export type ResolvedAsset={id:SemanticAssetId;type:string;description:string};
-export type ShotProps={headline:string;subline?:string;direction?:ShotDirection;assets?:ResolvedAsset[]};
+export type ShotProps={headline:string;subline?:string;direction?:ShotDirection;assets?:ResolvedAsset[];graph?:SceneGraph};
 const isSemanticAsset=(id:string):id is SemanticAssetId=>Object.prototype.hasOwnProperty.call(semanticAssets,id);
 export const resolveShotAssets=(assets:Storyboard['shots'][number]['assets']):ResolvedAsset[]=>
  assets.map(asset=>{
