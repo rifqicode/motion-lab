@@ -12,6 +12,7 @@ export interface SceneViewProps {
   theme: ThemeTokens;
   sceneIndex: number;
   totalScenes: number;
+  transitionDuration?: number;
 }
 
 export const SceneView: React.FC<SceneViewProps> = ({
@@ -19,6 +20,7 @@ export const SceneView: React.FC<SceneViewProps> = ({
   theme,
   sceneIndex,
   totalScenes,
+  transitionDuration = 15,
 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -32,6 +34,30 @@ export const SceneView: React.FC<SceneViewProps> = ({
   // Motion state is a pure frame calculation
   const motionState = resolveMotionState(frame, fps, scene, layout);
 
+  // Smooth cross-dissolve & zoom transition calculation
+  const isFirstScene = sceneIndex === 0;
+  const isLastScene = sceneIndex === totalScenes - 1;
+
+  let transitionOpacity = 1;
+  let transitionScale = 1;
+
+  if (!isFirstScene && frame < transitionDuration) {
+    const enterProgress = Math.min(1, Math.max(0, frame / transitionDuration));
+    // Smooth cubic ease-out
+    const eased = 1 - Math.pow(1 - enterProgress, 3);
+    transitionOpacity = eased;
+    transitionScale = 0.96 + 0.04 * eased;
+  } else if (!isLastScene && frame > scene.durationFrames) {
+    const exitProgress = Math.min(
+      1,
+      Math.max(0, (frame - scene.durationFrames) / transitionDuration)
+    );
+    // Smooth quadratic ease-in
+    const eased = Math.pow(exitProgress, 2);
+    transitionOpacity = Math.max(0, 1 - eased);
+    transitionScale = 1 + 0.035 * eased;
+  }
+
   return (
     <div
       style={{
@@ -40,6 +66,9 @@ export const SceneView: React.FC<SceneViewProps> = ({
         height,
         backgroundColor: theme.background,
         overflow: 'hidden',
+        opacity: transitionOpacity,
+        transform: `scale(${transitionScale})`,
+        transformOrigin: 'center center',
       }}
     >
       <HeaderOverlay
@@ -58,6 +87,7 @@ export const SceneView: React.FC<SceneViewProps> = ({
         cameraTransform={motionState.camera}
         width={width}
         height={height}
+        frame={frame}
       />
 
       <SubtitleOverlay

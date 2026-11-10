@@ -10,6 +10,7 @@ export interface NodeProps {
   opacity?: number;
   scale?: number;
   pulseGlow?: number;
+  floatY?: number;
 }
 
 export const DatabaseNode: React.FC<NodeProps> = ({
@@ -391,19 +392,45 @@ export const CustomNode: React.FC<NodeProps> = (props) => {
 };
 
 export const NodeRenderer: React.FC<NodeProps> = (props) => {
-  switch (props.node.kind) {
-    case 'database':
-      return <DatabaseNode {...props} />;
-    case 'log':
-      return <LogNode {...props} />;
-    case 'queue':
-      return <QueueNode {...props} />;
-    case 'client':
-      return <ClientNode {...props} />;
-    case 'service':
-      return <ServiceNode {...props} />;
-    case 'custom':
-    default:
-      return <CustomNode {...props} />;
-  }
+  const floatY = props.floatY ?? 0;
+  const isPulsingOrActive = (props.pulseGlow ?? 0) > 0.05;
+
+  const renderInner = () => {
+    switch (props.node.kind) {
+      case 'database':
+        return <DatabaseNode {...props} />;
+      case 'log':
+        return <LogNode {...props} />;
+      case 'queue':
+        return <QueueNode {...props} />;
+      case 'client':
+        return <ClientNode {...props} />;
+      case 'service':
+        return <ServiceNode {...props} />;
+      case 'custom':
+      default:
+        return <CustomNode {...props} />;
+    }
+  };
+
+  return (
+    <g
+      transform={floatY !== 0 ? `translate(0, ${floatY.toFixed(2)})` : undefined}
+      className={`node-wrapper node-${props.node.id}`}
+    >
+      {/* Radial ambient glow behind focused / active / breathing node */}
+      {isPulsingOrActive && (
+        <circle
+          cx={props.bounds.centerX}
+          cy={props.bounds.centerY}
+          r={Math.max(props.bounds.width, props.bounds.height) * 0.72}
+          fill={props.theme.glowColor}
+          opacity={Math.min(0.4, (props.pulseGlow ?? 0) * 0.45)}
+          style={{ filter: 'blur(28px)' }}
+          pointerEvents="none"
+        />
+      )}
+      {renderInner()}
+    </g>
+  );
 };

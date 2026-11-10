@@ -13,10 +13,12 @@
   "dependencies": {
     "@remotion/bundler": "^4.0.230",
     "@remotion/renderer": "^4.0.230",
+    "@studio/audio": "workspace:*",
     "@studio/diagrams": "workspace:*",
     "@studio/motion": "workspace:*",
     "@studio/renderer": "workspace:*",
     "@studio/schema": "workspace:*",
+    "@studio/storyboard": "workspace:*",
     "@studio/themes": "workspace:*",
     "commander": "^12.1.0",
     "remotion": "^4.0.230"

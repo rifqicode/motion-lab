@@ -81,6 +81,14 @@ export type SubtitleSettings = z.infer<typeof SubtitleSettingsSchema>;
 export const SceneTypeSchema = z.enum(['data-flow', 'comparison', 'focus-explain']);
 export type SceneType = z.infer<typeof SceneTypeSchema>;
 
+export const WordTimingSchema = z.object({
+  text: z.string(),
+  startMs: z.number().nonnegative(),
+  endMs: z.number().nonnegative(),
+  confidence: z.number().optional().default(1.0),
+});
+export type WordTiming = z.infer<typeof WordTimingSchema>;
+
 export const RawSceneSchema = z.object({
   id: z.string().min(1, 'Scene ID cannot be empty'),
   order: z.number().int().nonnegative('Scene order must be >= 0'),
@@ -95,6 +103,8 @@ export const RawSceneSchema = z.object({
   subtitleSettings: SubtitleSettingsSchema.default({}),
   audioAssetId: z.string().optional(),
   alignmentAssetId: z.string().optional(),
+  audioFile: z.string().optional(),
+  wordTimings: z.array(WordTimingSchema).optional(),
   revision: z.number().int().default(1),
 });
 
@@ -175,6 +185,7 @@ export const RawProjectSchema = z.object({
   aspectRatio: z.literal('9:16').default('9:16'),
   fps: z.literal(30).default(30),
   themeId: z.string().default('midnight-tech'),
+  bgmFile: z.string().optional(),
   sceneIds: z.array(z.string()).min(1, 'Project must contain at least one scene ID'),
   scenes: z.array(SceneSchema).min(1, 'Project must contain at least one scene'),
   revision: z.number().int().default(1),

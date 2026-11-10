@@ -9,11 +9,16 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@react-three/fiber": "8.17.10",
+    "@remotion/player": "4.0.537",
+    "@remotion/three": "4.0.537",
     "@studio/diagrams": "workspace:*",
     "@studio/motion": "workspace:*",
     "@studio/schema": "workspace:*",
     "@studio/themes": "workspace:*",
-    "remotion": "^4.0.230"
+    "@types/three": "0.170.0",
+    "remotion": "^4.0.230",
+    "three": "0.170.0"
   },
   "peerDependencies": {
     "react": "^18.3.1",

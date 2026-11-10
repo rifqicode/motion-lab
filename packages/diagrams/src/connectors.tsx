@@ -9,6 +9,7 @@ export interface ConnectorProps {
   theme: ThemeTokens;
   drawProgress?: number; // 0 to 1
   particlePosition?: { x: number; y: number } | null;
+  particles?: Array<{ x: number; y: number; opacity: number; scale: number }>;
   isActive?: boolean;
 }
 
@@ -18,6 +19,7 @@ export const Connector: React.FC<ConnectorProps> = ({
   theme,
   drawProgress = 1,
   particlePosition,
+  particles,
   isActive = false,
 }) => {
   const markerId = `arrowhead-${theme.id}-${isActive ? 'active' : 'normal'}`;
@@ -79,8 +81,25 @@ export const Connector: React.FC<ConnectorProps> = ({
         </g>
       )}
 
-      {/* Event particle traveler */}
-      {particlePosition && (
+      {/* Continuous glowing stream particles & event traveler */}
+      {particles && particles.length > 0 ? (
+        <g className="stream-particles">
+          {particles.map((p, idx) => (
+            <g
+              key={idx}
+              transform={`translate(${p.x}, ${p.y}) scale(${p.scale})`}
+              opacity={p.opacity}
+            >
+              <circle
+                r={idx === 0 ? 12 : 7}
+                fill={theme.particleColor}
+                filter={`drop-shadow(0 0 ${idx === 0 ? 10 : 5}px ${theme.particleColor})`}
+              />
+              <circle r={idx === 0 ? 5 : 2.5} fill="#FFFFFF" />
+            </g>
+          ))}
+        </g>
+      ) : particlePosition ? (
         <g transform={`translate(${particlePosition.x}, ${particlePosition.y})`}>
           <circle
             r={10}
@@ -89,7 +108,7 @@ export const Connector: React.FC<ConnectorProps> = ({
           />
           <circle r={5} fill="#FFFFFF" />
         </g>
-      )}
+      ) : null}
     </g>
   );
 };

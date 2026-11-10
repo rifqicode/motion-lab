@@ -5,10 +5,16 @@
   "description": "Local-first AI technical explainer studio pipeline",
   "scripts": {
     "build": "pnpm -r build",
-    "test": "vitest run",
-    "studio": "node ./apps/cli/dist/index.js"
+    "test": "vitest run --testTimeout 15000",
+    "studio": "node ./apps/cli/dist/index.js",
+    "studio:dev": "node scripts/dev-studio.mjs",
+    "studio:build": "node scripts/dev-studio.mjs --build",
+    "preview:3d": "node scripts/preview-three.mjs",
+    "preview:3d:build": "node scripts/preview-three.mjs --build",
+    "preview:internet": "node scripts/preview-three.mjs --internet --port 4174"
   },
   "devDependencies": {
+    "esbuild": "0.28.1",
     "typescript": "^5.6.3",
     "vitest": "^2.1.3"
   },

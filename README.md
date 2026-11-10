@@ -18,14 +18,20 @@ content-generator/
 │   ├── diagrams/           # @studio/diagrams: SVG diagram components & 3 auto-layout engines
 │   ├── motion/             # @studio/motion: 6 pure frame-math animation presets
 │   └── renderer/           # @studio/renderer: Remotion 1080x1920 compositions, sequencers & captions
-├── examples/
-│   └── postgres-cdc/       # PostgreSQL CDC 3-scene golden sample storyboard
 └── out/                    # Render output directory
 ```
 
 ---
 
 ## 🚀 Quickstart
+
+### Local 3D character preview
+
+Run `pnpm preview:3d` and open **http://localhost:4173** to review the Three.js character without rendering an MP4. The preview includes playback, a seekable timeline, three camera views, shirt color, and playback speed. Changes in these controls are temporary preview settings.
+
+For a standalone file, run `pnpm preview:3d:build` and open `out/three-preview/index.html` in a browser with WebGL2 support. Code, styles, and procedural geometry are embedded; no API key, network connection, or server is needed for the built HTML. Choose between the silent six-second egg scene and a 14-second running/stumble scene with a mild scrape and schematic skin cutaway.
+
+The reusable agent workflow is documented in `skills/local-three-video/SKILL.md`.
 
 ### 1. Install & Build
 

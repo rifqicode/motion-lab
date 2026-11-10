@@ -1,0 +1,16 @@
+{
+  "name": "@studio/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"build": "tsc"},
+  "dependencies": {
+    "@studio/studio-core": "workspace:*",
+    "@studio/storage": "workspace:*",
+    "@studio/codex-runtime": "workspace:*",
+    "@studio/antigravity-runtime": "workspace:*",
+    "@studio/codegen": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {"@types/node": "^22.8.4", "typescript": "^5.6.3"}
+}

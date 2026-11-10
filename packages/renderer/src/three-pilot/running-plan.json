@@ -1,0 +1,7 @@
+{
+  "id": "run-trip-wound",
+  "durationSeconds": 14,
+  "fps": 24,
+  "beats": {"trip": 3.2, "landing": 4.5, "wound": 5.5, "transition": 8.3, "cutaway": 8.8, "germs": 10.0},
+  "description": "Karakter berlari, tersandung batu, lalu melihat lecet kecil di tulang kering. Transisi ke ilustrasi diperbesar: mikroba abstrak mendekati dan melewati celah permukaan kulit."
+}

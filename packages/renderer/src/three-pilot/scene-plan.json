@@ -1,0 +1,9 @@
+{
+  "id": "egg-belief-pilot",
+  "durationSeconds": 6,
+  "fps": 24,
+  "palette": {"background": "#e5c99b", "shirt": "#438e89", "skin": "#dba577"},
+  "beats": {"reachStart": 0.6, "reachEnd": 1.8, "doubtStart": 2.1, "bubbleStart": 2.8},
+  "camera": {"pushIn": 0.38},
+  "narration": "Makan telur bikin bisul? Banyak yang percaya. Tapi, bener nggak sih?"
+}

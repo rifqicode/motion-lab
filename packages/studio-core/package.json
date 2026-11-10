@@ -1,0 +1,16 @@
+{
+  "name": "@studio/studio-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {"types": "./dist/index.d.ts", "import": "./dist/index.js"},
+    "./brief": {"types": "./dist/brief.d.ts", "import": "./dist/brief.js"},
+    "./style": {"types": "./dist/style.d.ts", "import": "./dist/style.js"}
+  },
+  "scripts": {"build": "tsc"},
+  "dependencies": {"zod": "^3.23.8"},
+  "devDependencies": {"@types/node": "^22.8.4", "typescript": "^5.6.3"}
+}

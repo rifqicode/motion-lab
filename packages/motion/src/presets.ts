@@ -6,11 +6,13 @@ export interface NodeMotionState {
   opacity: number;
   scale: number;
   pulseGlow: number;
+  floatY?: number;
 }
 
 export interface EdgeMotionState {
   drawProgress: number;
   particlePosition: { x: number; y: number } | null;
+  particles?: Array<{ x: number; y: number; opacity: number; scale: number }>;
   isActive: boolean;
 }
 
@@ -90,10 +92,14 @@ export function evaluateEventTravel(
   frame: number,
   cue: AnimationCue,
   edgeLayout?: EdgeLayout
-): { particlePosition: { x: number; y: number } | null; isActive: boolean } {
+): {
+  particlePosition: { x: number; y: number } | null;
+  particles: Array<{ x: number; y: number; opacity: number; scale: number }>;
+  isActive: boolean;
+} {
   const { startFrame, durationFrames } = cue;
   if (frame < startFrame || frame > startFrame + durationFrames || !edgeLayout) {
-    return { particlePosition: null, isActive: false };
+    return { particlePosition: null, particles: [], isActive: false };
   }
 
   const t = (frame - startFrame) / durationFrames;
@@ -101,16 +107,36 @@ export function evaluateEventTravel(
   const regex = /M\s+([\d.-]+)\s+([\d.-]+)\s+C\s+([\d.-]+)\s+([\d.-]+),\s+([\d.-]+)\s+([\d.-]+),\s+([\d.-]+)\s+([\d.-]+)/;
   const match = edgeLayout.path.match(regex);
 
-  if (match) {
-    const [, x0, y0, x1, y1, x2, y2, x3, y3] = match.map(Number);
-    const point = computeCubicBezierPoint(t, x0, y0, x1, y1, x2, y2, x3, y3);
-    return { particlePosition: point, isActive: true };
+  const getPointAt = (progress: number) => {
+    const clamped = clamp(progress, 0, 1);
+    if (match) {
+      const [, x0, y0, x1, y1, x2, y2, x3, y3] = match.map(Number);
+      return computeCubicBezierPoint(clamped, x0, y0, x1, y1, x2, y2, x3, y3);
+    }
+    const x = edgeLayout.fromPoint.x + (edgeLayout.toPoint.x - edgeLayout.fromPoint.x) * clamped;
+    const y = edgeLayout.fromPoint.y + (edgeLayout.toPoint.y - edgeLayout.fromPoint.y) * clamped;
+    return { x, y };
+  };
+
+  const leadPoint = getPointAt(t);
+
+  // Generate continuous glowing pulse packets / stream trails traveling along the path
+  const trailCount = 5;
+  const particles: Array<{ x: number; y: number; opacity: number; scale: number }> = [];
+  for (let i = 0; i < trailCount; i++) {
+    const pt = t - i * 0.04;
+    if (pt >= 0 && pt <= 1) {
+      const pos = getPointAt(pt);
+      particles.push({
+        x: pos.x,
+        y: pos.y,
+        opacity: i === 0 ? 1 : Math.max(0.15, (1 - i / trailCount) * 0.85),
+        scale: i === 0 ? 1 : Math.max(0.4, 1 - i * 0.14),
+      });
+    }
   }
 
-  // Fallback linear interpolation between from and to points
-  const x = edgeLayout.fromPoint.x + (edgeLayout.toPoint.x - edgeLayout.fromPoint.x) * t;
-  const y = edgeLayout.fromPoint.y + (edgeLayout.toPoint.y - edgeLayout.fromPoint.y) * t;
-  return { particlePosition: { x, y }, isActive: true };
+  return { particlePosition: leadPoint, particles, isActive: true };
 }
 
 export function evaluateNodePulse(
@@ -213,6 +239,7 @@ export function resolveMotionState(
     edgeStates[edge.id] = {
       drawProgress: edgesWithDraw.has(edge.id) ? 0 : 1,
       particlePosition: null,
+      particles: [],
       isActive: false,
     };
   }
@@ -241,6 +268,7 @@ export function resolveMotionState(
           const res = evaluateEventTravel(frame, cue, edgeLayout);
           if (res.particlePosition) {
             edgeStates[cue.targetId].particlePosition = res.particlePosition;
+            edgeStates[cue.targetId].particles = res.particles;
             edgeStates[cue.targetId].isActive = res.isActive;
           }
         }
@@ -263,6 +291,29 @@ export function resolveMotionState(
       case 'caption-emphasis': {
         captionEmphasis[cue.targetId] = evaluateCaptionEmphasis(frame, cue);
         break;
+      }
+    }
+  }
+
+  // Apply organic ambient motion (breathing / harmonic floating) so nodes NEVER freeze statically
+  for (let i = 0; i < scene.nodes.length; i++) {
+    const node = scene.nodes[i];
+    const nState = nodeStates[node.id];
+    if (nState && nState.opacity > 0) {
+      const offset = i * 1.35;
+      // Harmonic floating: sin(frame / 25 + offset) * 5px
+      const floatY = Math.sin(frame / 25 + offset) * 5 * nState.opacity;
+      nState.floatY = floatY;
+
+      // Subtle glowing breath
+      const breath = Math.sin(frame / 35 + offset) * 0.012;
+      if (nState.opacity >= 0.99) {
+        nState.scale = Math.max(0.7, nState.scale + breath);
+      }
+
+      // Idle glowing breath when no active pulse
+      if (nState.pulseGlow === 0 && nState.opacity >= 0.99) {
+        nState.pulseGlow = (Math.sin(frame / 30 + offset) + 1) * 0.08;
       }
     }
   }
