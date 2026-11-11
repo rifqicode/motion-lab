@@ -7,6 +7,13 @@ import {randomUUID} from 'node:crypto';
 import {briefHash, type Job, type Project, type ProjectSnapshot, type Revision, type SourceProposal} from '@studio/studio-core';
 import {createStudioHttp} from './http.js';
 import {StudioService} from './service.js';
+import {board} from '../../../packages/studio-core/test/storyboard-fixture.js';
+
+// These scenarios fsync real project records; budgets include contention from
+// concurrent browser/render verification, while provider/renderer calls stay fake.
+const scenarioTimeout = 60_000;
+const jobTimeout = 30_000;
+vi.setConfig({testTimeout: scenarioTimeout, hookTimeout: 30_000});
 
 const shot = {id: 'cache', durationFrames: 450, intent: 'Explain one cache miss', visualDirection: 'Dark SVG'};
 const source = "import React from 'react'; export default function Cache({frame}: {frame:number}) { return <svg width={720} height={1280}><text x={frame + 80} y={200}>Cache miss</text></svg>; }";
@@ -43,7 +50,8 @@ describe('local studio HTTP integration (fake Codex and renderer)', () => {
     turn = vi.spyOn(service.codex, 'runTurn');
     turn.mockImplementation(async () => { throw new Error('Unexpected Codex call in HTTP fixture'); });
     vi.spyOn(service.builder, 'status').mockResolvedValue({available: true, image: 'fixture-image'});
-    vi.spyOn(service.builder, 'build').mockImplementation(async input => {
+    vi.spyOn(service.builder, 'build').mockRejectedValue(new Error('Production build must not run during editing'));
+    vi.spyOn(service.builder, 'preview').mockImplementation(async input => {
       const manifest = JSON.parse(await fs.readFile(path.join(input.projectDir, 'source', input.sourceId, 'manifest.json'), 'utf8'));
       const build = {id: input.buildId, sourceId: input.sourceId, status: 'ready' as const, shots: input.shots,
         durationFrames: input.shots.reduce((total, item) => total + item.durationFrames, 0), fps: 30 as const, width: 720 as const, height: 1280 as const,
@@ -101,7 +109,7 @@ describe('local studio HTTP integration (fake Codex and renderer)', () => {
       if (!['succeeded', 'failed', 'cancelled'].includes(job.status)) throw new Error(`Job still ${job.status}`);
       service.assertIdle(projectId);
       return job;
-    }, {timeout: 10_000, interval: 10});
+    }, {timeout: jobTimeout, interval: 25});
     return result;
   }
 
@@ -214,7 +222,7 @@ describe('local studio HTTP integration (fake Codex and renderer)', () => {
     }
     expect(turn.mock.calls.at(-1)![0].images).toHaveLength(1);
     expect(service.codex.createThread).toHaveBeenCalledWith(expect.objectContaining({role: 'implementor', developerInstructions: expect.stringContaining('Do not assume a dark navy background')}));
-  }, 25_000);
+  }, scenarioTimeout);
 
   it('does not call Codex or renderer when generation lacks approved current brief', async () => {
     const project = await createProject();
@@ -269,14 +277,14 @@ describe('local studio HTTP integration (fake Codex and renderer)', () => {
     expect((await request(`/api/projects/${project.id}/candidates/${discardId}/discard`, 'POST', {expectedRevisionId: restored.id})).status).toBe(200);
     expect((await service.store.getProject(project.id)).currentRevisionId).toBe(restored.id);
     expect((await service.store.getProject(project.id)).openCandidateId).toBeNull();
-  }, 20_000);
+  }, scenarioTimeout);
 
   it('hands the exact frame screenshot and stable original shot to a comment-driven code revision', async () => {
     const project = await createProject();
     await approve(project);
     const firstId = await generate(project, null);
     const applied = await (await request(`/api/projects/${project.id}/candidates/${firstId}/apply`, 'POST', {expectedRevisionId: null})).json() as Revision;
-    const comment = await service.store.addComment(project.id, {revisionId: applied.id, shotId: shot.id, localFrame: 72, fps: 30}, 'Move the key after the DNS explanation.');
+    const comment = await service.store.addComment(project.id, {revisionId: applied.id, shotId: shot.id, localFrame: 34, fps: 30}, 'Move the key after the DNS explanation.');
     const revisedSource = source.replace('Cache miss', 'Cache delayed');
     turn.mockResolvedValueOnce({threadId: 'fixture-implementor', turnId: randomUUID(), status: 'completed', text: JSON.stringify(proposal(applied.id, revisedSource))});
     const response = await request(`/api/projects/${project.id}/comments/${comment.id}/revisions`, 'POST', {requestId: randomUUID(), expectedRevisionId: applied.id});
@@ -284,16 +292,31 @@ describe('local studio HTTP integration (fake Codex and renderer)', () => {
     const {jobId} = await response.json();
     const job = await waitForJob(project.id, jobId);
     expect(job, job.error).toMatchObject({status: 'succeeded', kind: 'revise'});
-    expect(service.builder.screenshot).toHaveBeenCalledWith(expect.objectContaining({buildId: applied.buildId, frame: 72}));
+    expect(service.builder.screenshot).toHaveBeenCalledWith(expect.objectContaining({buildId: applied.buildId, frame: 34}));
+    expect(service.builder.preview).toHaveBeenLastCalledWith(expect.objectContaining({frames: [34]}));
     const call = turn.mock.calls.at(-1)![0];
     expect(call.images).toEqual([path.join(service.store.projectPath(project.id), 'comments', `${comment.id}.png`)]);
-    expect(call.prompt).toContain('"localFrame":72');
+    expect(call.prompt).toContain('"localFrame":34');
     expect(call.prompt).toContain('Move the key after the DNS explanation.');
     const detail = await (await request(`/api/projects/${project.id}/candidates/${job.candidateId}`)).json();
     expect(detail.after[0].content).toContain('Cache delayed');
     expect(detail.before[0].content).toContain('Cache miss');
     expect((await service.store.getComment(project.id, comment.id)).status).toBe('open');
-  }, 15_000);
+  }, scenarioTimeout);
+
+  it('routes explicit Director revision mode with a required accepted-revision identity', async () => {
+    const project = await createProject();
+    const revisionId = randomUUID();
+    const requestId = randomUUID();
+    const dispatch = vi.spyOn(service, 'reviseFromDirector').mockResolvedValue({jobId: randomUUID()});
+    const response = await request(`/api/projects/${project.id}/messages`, 'POST', {requestId, text: 'Pelankan seluruh video.', mode: 'revise', expectedRevisionId: revisionId});
+    expect(response.status).toBe(202);
+    expect(dispatch).toHaveBeenCalledWith(project.id, requestId, 'Pelankan seluruh video.', revisionId, undefined);
+    const invalid = await request(`/api/projects/${project.id}/messages`, 'POST', {requestId: randomUUID(), text: 'Pelankan', mode: 'revise'});
+    expect(invalid.status).toBe(400);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(turn).not.toHaveBeenCalled();
+  });
 
   it('deduplicates a retried chat command and resumes the correct project thread without duplicating messages', async () => {
     const project = await createProject();
@@ -315,6 +338,45 @@ describe('local studio HTTP integration (fake Codex and renderer)', () => {
     expect((await waitForJob(project.id, nextJob.jobId)).status).toBe('succeeded');
     expect(service.codex.resumeThread).toHaveBeenCalledWith(thread);
     expect((await service.store.getSnapshot(project.id)).messages).toHaveLength(4);
+  });
+
+  it('keeps shot discussions in the same Director thread, forwards local detail and restores global scope without changing the board', async () => {
+    const project = await createProject();
+    const saved = await service.store.saveStoryboard(project.id, board, null, briefHash(project.brief, project.style));
+    turn.mockImplementation(async options => ({threadId: options.threadId, turnId: randomUUID(), status: 'completed', text: 'Mari bahas arah shot.'}));
+    const send = async (text: string, shotContext?: unknown) => {
+      const response = await request(`/api/projects/${project.id}/messages`, 'POST', {requestId: randomUUID(), text, ...(shotContext ? {shotContext} : {})});
+      expect(response.status).toBe(202);
+      expect((await waitForJob(project.id, (await response.json()).jobId)).status).toBe('succeeded');
+    };
+    await send('Bahas keseluruhan video.');
+    const thread = await service.store.getThread(project.id, 'brainstorm-style-v1');
+    const localShot = {...board.shots[1], motionInstructions: 'Gerakkan key perlahan sesuai draft lokal.'};
+    await send('Bagaimana animasinya?', {shot: localShot, position: 2, draft: true});
+    expect(turn.mock.calls[1][0].threadId).toBe(thread);
+    expect(turn.mock.calls[1][0].prompt).toContain('ONLY the selected shot');
+    expect(turn.mock.calls[1][0].prompt).toContain(localShot.motionInstructions);
+    expect(turn.mock.calls[1][0].prompt).toContain(JSON.stringify(board.designSystem));
+    await send('Sekarang bahas hook.', {shot: board.shots[0], position: 1, draft: false});
+    expect(turn.mock.calls[2][0].threadId).toBe(thread);
+    expect(turn.mock.calls[2][0].prompt).toContain('"position":1');
+    await send('Kembali ke keseluruhan video.');
+    expect(turn.mock.calls[3][0].threadId).toBe(thread);
+    expect(turn.mock.calls[3][0].prompt).toContain('the whole project');
+    expect(turn.mock.calls[3][0].prompt).not.toContain('Selected shot context:');
+    expect(await service.store.getStoryboard(project.id)).toEqual(saved);
+    const snapshot = await service.store.getSnapshot(project.id);
+    expect(snapshot.messages).toHaveLength(8);
+    expect(snapshot.messages[2].content).toContain('[Shot 02 · Explain · explain]');
+    expect(snapshot.messages[2].content).toContain('Bagaimana animasinya?');
+  });
+
+  it('rejects invalid shot discussion context before scheduling an AI turn', async () => {
+    const project = await createProject();
+    const response = await request(`/api/projects/${project.id}/messages`, 'POST', {requestId: randomUUID(), text: 'Bahas ini', shotContext: {position: 0, draft: false, shot: {...board.shots[0], durationFrames: -1}}});
+    expect(response.status).toBe(400);
+    expect(turn).not.toHaveBeenCalled();
+    expect((await service.store.getSnapshot(project.id)).messages).toHaveLength(0);
   });
 
   it('keeps legacy thread bindings and seeds the new style-aware conversation from saved project messages', async () => {
@@ -348,7 +410,7 @@ describe('local studio HTTP integration (fake Codex and renderer)', () => {
     const snapshot = await service.store.getSnapshot(project.id);
     expect(snapshot.candidates.filter(candidate => candidate.status === 'failed')).toHaveLength(1);
     expect(snapshot.candidates.filter(candidate => candidate.status === 'ready')).toHaveLength(1);
-  }, 15_000);
+  }, scenarioTimeout);
 
   it('stops after two code repairs and keeps the last working revision when every proposed TSX file is invalid', async () => {
     const project = await createProject();
@@ -363,12 +425,13 @@ describe('local studio HTTP integration (fake Codex and renderer)', () => {
     expect(job.status).toBe('failed');
     expect(job.error).toContain('dua perbaikan');
     expect(turn).toHaveBeenCalledTimes(4);
-    expect(service.builder.build).toHaveBeenCalledTimes(1);
+    expect(service.builder.preview).toHaveBeenCalledTimes(1);
+    expect(service.builder.build).not.toHaveBeenCalled();
     const snapshot = await service.store.getSnapshot(project.id);
     expect(snapshot.project.currentRevisionId).toBe(first.id);
     expect(snapshot.project.openCandidateId).toBeNull();
     expect(snapshot.candidates.filter(candidate => candidate.status === 'failed')).toHaveLength(3);
-  }, 20_000);
+  }, scenarioTimeout);
 
   it('cancels a pending chat turn without persisting a late assistant reply and allows the project to continue', async () => {
     const project = await createProject();
@@ -379,7 +442,7 @@ describe('local studio HTTP integration (fake Codex and renderer)', () => {
     }));
     const response = await request(`/api/projects/${project.id}/messages`, 'POST', {requestId: randomUUID(), text: 'Brainstorm this scene.'});
     const {jobId} = await response.json();
-    await vi.waitFor(() => expect(turn).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(turn).toHaveBeenCalledTimes(1), {timeout: jobTimeout, interval: 25});
     const stopped = await request(`/api/jobs/${jobId}/cancel`, 'POST');
     expect(stopped.status).toBe(200);
     const job = await waitForJob(project.id, jobId);
@@ -438,5 +501,56 @@ describe('local studio HTTP integration (fake Codex and renderer)', () => {
     expect(snapshotRes.status).toBe(200);
     const snapshot = await snapshotRes.json();
     expect(snapshot.project.agentProvider).toBe('codex');
+  });
+
+  it('creates an editable Director storyboard without invoking the production builder, then approves its exact fingerprint', async () => {
+    const project = await createProject();
+    turn.mockResolvedValueOnce({threadId: 'fixture-director', turnId: randomUUID(), status: 'completed', text: JSON.stringify(board)});
+    const response = await request(`/api/projects/${project.id}/director`, 'POST', {requestId: randomUUID(), expectedHash: null});
+    expect(response.status).toBe(202);
+    const {jobId} = await response.json();
+    expect((await waitForJob(project.id, jobId)).status).toBe('succeeded');
+    expect(service.builder.build).not.toHaveBeenCalled();
+    const state = await (await request(`/api/projects/${project.id}/storyboard`)).json();
+    expect(state.draft).toEqual(board);
+    expect(state.approvedHash).toBeNull();
+    expect(state.hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(turn.mock.calls[0][0]).toHaveProperty('outputSchema');
+
+    const rejected = await request(`/api/projects/${project.id}/generations`, 'POST', {requestId: randomUUID(), expectedRevisionId: null, approvedStoryboardHash: state.hash});
+    expect((await waitForJob(project.id, (await rejected.json()).jobId)).status).toBe('failed');
+    expect(turn).toHaveBeenCalledTimes(1);
+    const approved = await request(`/api/projects/${project.id}/storyboard/approve`, 'POST', {storyboardHash: state.hash});
+    expect(approved.status).toBe(200);
+    expect((await approved.json()).approvedHash).toBe(state.hash);
+
+    const changed = await request(`/api/projects/${project.id}/storyboard`, 'PUT', {storyboard: {...board, hook: 'An edited hook'}, expectedHash: state.hash});
+    expect(changed.status).toBe(200);
+    expect((await changed.json()).approvedHash).toBeNull();
+    expect((await request(`/api/projects/${project.id}/storyboard/approve`, 'POST', {storyboardHash: state.hash})).status).toBe(409);
+    expect((await request(`/api/projects/${project.id}/storyboard`, 'PUT', {storyboard: board, expectedHash: state.hash})).status).toBe(409);
+    expect((await service.store.getSnapshot(project.id)).messages).toEqual([]);
+  });
+
+  it('repairs invalid Director JSON, deduplicates the command and preserves stable shot IDs on reorder', async () => {
+    const project = await createProject();
+    turn.mockResolvedValueOnce({threadId: 'fixture-director', turnId: randomUUID(), status: 'completed', text: '{invalid'});
+    turn.mockResolvedValueOnce({threadId: 'fixture-director', turnId: randomUUID(), status: 'completed', text: JSON.stringify(board)});
+    const requestId = randomUUID();
+    const first = await (await request(`/api/projects/${project.id}/director`, 'POST', {requestId, expectedHash: null})).json();
+    expect((await waitForJob(project.id, first.jobId)).status).toBe('succeeded');
+    expect(turn).toHaveBeenCalledTimes(2);
+    const retry = await (await request(`/api/projects/${project.id}/director`, 'POST', {requestId, expectedHash: null})).json();
+    expect(retry).toEqual(first);
+    expect(turn).toHaveBeenCalledTimes(2);
+    const state = await service.store.getStoryboard(project.id);
+    const reordered = {...board, shots: [...board.shots].reverse()};
+    turn.mockResolvedValueOnce({threadId: 'fixture-director', turnId: randomUUID(), status: 'completed', text: JSON.stringify(reordered)});
+    const second = await (await request(`/api/projects/${project.id}/director`, 'POST', {requestId: randomUUID(), expectedHash: state.hash})).json();
+    expect((await waitForJob(project.id, second.jobId)).status).toBe('succeeded');
+    expect((await service.store.getStoryboard(project.id)).draft?.shots.map(shot => shot.id)).toEqual(['explain', 'hook']);
+    const stale = await (await request(`/api/projects/${project.id}/director`, 'POST', {requestId: randomUUID(), expectedHash: state.hash})).json();
+    expect((await waitForJob(project.id, stale.jobId)).status).toBe('failed');
+    expect(turn).toHaveBeenCalledTimes(3);
   });
 });

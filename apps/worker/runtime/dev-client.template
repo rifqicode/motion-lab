@@ -1,0 +1,109 @@
+import React, {useEffect, useRef, useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import {Player, type PlayerRef} from '@remotion/player';
+import * as initial from './active';
+
+type Version = typeof initial;
+let channel: MessagePort | null = null;
+let player: PlayerRef | null = null;
+let active = initial;
+let previous: Version | null = null;
+let update: ((value: Version) => void) | null = null;
+let savedFrame = 0;
+let savedPlaying = false;
+const probe = new URLSearchParams(location.search).has('probe');
+const emit = (type: string, extra: Record<string, unknown> = {}) => channel?.postMessage({type, version: 1,
+  buildId: active.meta.buildId, sessionId: active.meta.sessionId, frame: player?.getCurrentFrame() ?? 0,
+  playing: player?.isPlaying() ?? false, ...extra});
+
+window.addEventListener('message', event => {
+  if (event.source !== parent || event.data?.type !== 'studio:connect' || event.data?.version !== 1 || event.ports.length !== 1) return;
+  if (event.data.sessionId !== active.meta.sessionId && event.data.buildId !== active.meta.buildId) return;
+  channel?.close();
+  channel = event.ports[0];
+  channel.onmessage = ({data}) => {
+    if (!player || !data || typeof data !== 'object') return;
+    if (data.type === 'play') void Promise.resolve(player.play()).catch(error => emit('error', {message: String(error)}));
+    if (data.type === 'pause') player.pause();
+    if (data.type === 'seek' && Number.isInteger(data.frame)) {
+      player.pause(); player.seekTo(Math.max(0, Math.min(active.meta.durationFrames - 1, data.frame)));
+    }
+    if (data.type === 'step' && Number.isInteger(data.frame) && Math.abs(data.frame) <= active.meta.durationFrames) {
+      player.pause(); player.seekTo(Math.max(0, Math.min(active.meta.durationFrames - 1, player.getCurrentFrame() + data.frame)));
+    }
+    if (data.type === 'getState') emit('ready', active.meta);
+  };
+  channel.start();
+  if (player) emit('ready', active.meta);
+});
+
+const fail = (error: Error) => {
+  const message = error.message;
+  (window as unknown as {__studioProbe: unknown}).__studioProbe = {error: message};
+  if (!probe && previous) {
+    const failedBuildId = active.meta.buildId;
+    const fallback = previous;
+    previous = null;
+    active = fallback;
+    update?.(fallback);
+    emit('error', {message, recovered: true, failedBuildId, fallbackBuildId: fallback.meta.buildId});
+  } else emit('error', {message});
+};
+
+class Boundary extends React.Component<React.PropsWithChildren, {error: boolean}> {
+  state = {error: false};
+  static getDerivedStateFromError() { return {error: true}; }
+  componentDidCatch(error: Error) { fail(error); }
+  render() { return this.state.error ? <p role="alert">Preview gagal pada versi ini.</p> : this.props.children; }
+}
+
+function App() {
+  const [version, setVersion] = useState<Version>(initial);
+  const ref = useRef<PlayerRef>(null);
+  update = setVersion;
+  active = version;
+  useEffect(() => {
+    const current = ref.current;
+    if (!current) return;
+    player = current;
+    const frame = probe ? Number(new URLSearchParams(location.search).get('frame') ?? 0) : savedFrame;
+    current.seekTo(Math.min(version.meta.durationFrames - 1, Math.max(0, frame)));
+    const onFrame = () => emit('frame');
+    const onPlayback = () => emit('playback');
+    const onError = (event: {detail: {error: Error}}) => fail(event.detail.error);
+    current.addEventListener('frameupdate', onFrame);
+    current.addEventListener('play', onPlayback);
+    current.addEventListener('pause', onPlayback);
+    current.addEventListener('error', onError);
+    if (!probe && savedPlaying) void current.play();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!(window as unknown as {__studioProbe?: {error?: string}}).__studioProbe?.error)
+        (window as unknown as {__studioProbe: unknown}).__studioProbe = {ready: true, buildId: version.meta.buildId, frame};
+      emit('ready', version.meta);
+      emit('updated', version.meta);
+    }));
+    return () => {
+      savedFrame = current.getCurrentFrame(); savedPlaying = current.isPlaying();
+      current.removeEventListener('frameupdate', onFrame);
+      current.removeEventListener('play', onPlayback);
+      current.removeEventListener('pause', onPlayback);
+      current.removeEventListener('error', onError);
+      if (player === current) player = null;
+    };
+  }, [version]);
+  return <Boundary key={version.meta.buildId}><Player ref={ref} component={version.StudioComposition}
+    durationInFrames={version.meta.durationFrames} compositionWidth={720} compositionHeight={1280} fps={30}
+    controls={false} clickToPlay={false} numberOfSharedAudioTags={2}
+    style={{width: '100%', height: '100%'}} errorFallback={({error}) => {
+      queueMicrotask(() => fail(error)); return <p role="alert">Preview gagal pada versi ini.</p>;
+    }}/></Boundary>;
+}
+
+if (import.meta.hot) import.meta.hot.accept('./active', next => {
+  if (!next) return;
+  savedFrame = player?.getCurrentFrame() ?? savedFrame;
+  savedPlaying = player?.isPlaying() ?? false;
+  previous = active;
+  update?.(next);
+});
+createRoot(document.getElementById('root')!).render(<App/>);

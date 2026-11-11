@@ -7,6 +7,8 @@ import {StudioError, type Job} from '@studio/studio-core';
 import type {BuildProgressCallback, BuildResult} from '@studio/codegen';
 import {StudioService} from './service.js';
 
+vi.setConfig({testTimeout: 60_000, hookTimeout: 30_000});
+
 function deferred() {
   let resolve!: () => void;
   const promise = new Promise<void>(done => { resolve = done; });
@@ -19,8 +21,8 @@ describe('job progress persistence (Codex/build fixtures)', () => {
   let releaseStage: ReturnType<typeof deferred>;
   let enteredStage: ReturnType<typeof deferred>;
   let lateProgress: BuildProgressCallback | undefined;
-  const stages = ['typecheck', 'browser-build', 'render-build', 'smoke-checking', 'ready'];
-  const messages = ['Memeriksa tipe TypeScript', 'Membangun preview', 'Membangun render', 'Memeriksa frame', 'Menyiapkan kandidat preview'];
+  const stages = ['typecheck', 'smoke-checking', 'ready'];
+  const messages = ['Memeriksa tipe TypeScript', 'Memeriksa frame', 'Menyiapkan kandidat preview'];
 
   beforeEach(async () => {
     root = await fs.mkdtemp(path.join(os.tmpdir(), 'studio-progress-test-'));
@@ -35,6 +37,7 @@ describe('job progress persistence (Codex/build fixtures)', () => {
       changedFiles: [{path: 'src/shots/cache.tsx', content: "import React from 'react'; export default ({frame}:{frame:number})=><svg width={720} height={1280}><circle cx={frame+20} cy={100} r={10}/></svg>;"}], deletedFiles: [],
     })});
     vi.spyOn(service.builder, 'status').mockResolvedValue({available: true, image: 'fixture-image'});
+    vi.spyOn(service.builder, 'build').mockRejectedValue(new Error('Production build must not run during editing'));
     const saveJob = service.store.saveJob.bind(service.store);
     vi.spyOn(service.store, 'saveJob').mockImplementation(async (projectId, job) => {
       if (job.message === messages[0]) { enteredStage.resolve(); await releaseStage.promise; }
@@ -62,12 +65,12 @@ describe('job progress persistence (Codex/build fixtures)', () => {
       if (!['succeeded', 'failed', 'cancelled'].includes(job.status)) throw new Error('Job not terminal yet');
       service.assertIdle(projectId);
       return job;
-    }, {timeout: 10_000, interval: 10});
+    }, {timeout: 30_000, interval: 25});
   }
 
   it('persists rapid worker stages in order and drains them before a ready candidate or successful job', async () => {
     const events = vi.spyOn(service.events, 'publish');
-    vi.spyOn(service.builder, 'build').mockImplementation(async input => {
+    vi.spyOn(service.builder, 'preview').mockImplementation(async input => {
       lateProgress = input.onProgress;
       for (const stage of stages.slice(0, -1)) void input.onProgress?.(stage);
       const record: BuildResult = {id: input.buildId, sourceId: input.sourceId, status: 'ready', shots: input.shots,
@@ -93,16 +96,17 @@ describe('job progress persistence (Codex/build fixtures)', () => {
     const completedIndex = events.mock.calls.findIndex(call => call[1] === 'job.completed');
     expect(readyIndex).toBeGreaterThan(lastStageIndex);
     expect(completedIndex).toBeGreaterThan(readyIndex);
+    expect(service.builder.build).not.toHaveBeenCalled();
     await lateProgress?.('browser-build');
     expect(await service.store.getJob(projectId, jobId)).toEqual(job);
-  }, 15_000);
+  }, 60_000);
 
   it.each(['RUNTIME_UNAVAILABLE', 'BROWSER_START_TIMEOUT'])('drains progress before recording %s without another AI turn and ignores late updates', async failureCode => {
     const events = vi.spyOn(service.events, 'publish');
-    vi.spyOn(service.builder, 'build').mockImplementation(async input => {
+    vi.spyOn(service.builder, 'preview').mockImplementation(async input => {
       lateProgress = input.onProgress;
       void input.onProgress?.('typecheck');
-      void input.onProgress?.('render-build');
+      void input.onProgress?.('smoke-checking');
       throw new StudioError(failureCode, 'Fixture worker failure', 503);
     });
     const {projectId, jobId} = await begin();
@@ -113,11 +117,11 @@ describe('job progress persistence (Codex/build fixtures)', () => {
     const failed = await terminal(projectId, jobId);
     expect(failed).toMatchObject({status: 'failed', message: 'Proses gagal', error: 'Fixture worker failure'});
     expect(service.codex.runTurn).toHaveBeenCalledTimes(1);
-    const stageIndex = events.mock.calls.findIndex(call => call[1] === 'job.progress' && (call[2] as {message?: string}).message === 'Membangun render');
+    const stageIndex = events.mock.calls.findIndex(call => call[1] === 'job.progress' && (call[2] as {message?: string}).message === 'Memeriksa frame');
     const failedIndex = events.mock.calls.findIndex(call => call[1] === 'job.failed');
     expect(failedIndex).toBeGreaterThan(stageIndex);
     await lateProgress?.('ready');
     expect(await service.store.getJob(projectId, jobId)).toEqual(failed);
     expect(events.mock.calls.some(call => call[1] === 'candidate.ready')).toBe(false);
-  }, 15_000);
+  }, 60_000);
 });

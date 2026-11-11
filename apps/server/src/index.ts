@@ -11,7 +11,7 @@ const service = new StudioService({repoRoot, projectRoot: path.resolve(process.e
 await service.start();
 const http = await createStudioHttp({service, editorDir: path.join(repoRoot, 'out', 'studio-editor'), port, previewPort}).catch(async error => {await service.close(); throw error;});
 console.log(`Local studio: http://127.0.0.1:${port}`);
-console.log('M0: silent 2D, Codex subscription login, local JSON/source files.');
+console.log('2D studio, local Chatterbox voice-over, local JSON/source files.');
 let closing = false;
 const close = async () => {
   if (closing) return;

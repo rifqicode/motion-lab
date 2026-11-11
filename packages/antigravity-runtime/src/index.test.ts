@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AntigravityRuntime, AntigravityRuntimeError, cleanJsonOutput } from './index.js';
+import { AntigravityRuntime, AntigravityRuntimeError, cleanJsonOutput, sanitizeJsonSchema } from './index.js';
 
 describe('AntigravityRuntime', () => {
   it('creates a thread with UUID and resumes it', async () => {
@@ -65,5 +65,28 @@ describe('AntigravityRuntime', () => {
   it('can close cleanly without active turns', async () => {
     const runtime = new AntigravityRuntime();
     await expect(runtime.close()).resolves.toBeUndefined();
+  });
+
+  it('sanitizes json schemas by removing enum from integer and number types', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        schemaVersion: { type: 'integer', enum: [1] },
+        ratio: { type: 'number', enum: [1.5, 2.0] },
+        status: { type: 'string', enum: ['cut', 'fade'] },
+        nested: {
+          type: 'object',
+          properties: {
+            count: { type: 'integer', enum: [10] },
+          },
+        },
+      },
+    };
+
+    const sanitized = sanitizeJsonSchema(schema) as any;
+    expect(sanitized.properties.schemaVersion).toEqual({ type: 'integer' });
+    expect(sanitized.properties.ratio).toEqual({ type: 'number' });
+    expect(sanitized.properties.status).toEqual({ type: 'string', enum: ['cut', 'fade'] });
+    expect(sanitized.properties.nested.properties.count).toEqual({ type: 'integer' });
   });
 });

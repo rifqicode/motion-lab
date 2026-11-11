@@ -18,6 +18,7 @@ out/
 # Tooling & agent scratchpad
 .playwright-mcp/
 .cache/
+scripts/chatterbox/__pycache__/
 tmp/
 temp/
 skills/

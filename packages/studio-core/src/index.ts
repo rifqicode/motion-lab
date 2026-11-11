@@ -2,11 +2,20 @@ import {createHash, randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {StyleBriefSchema, type StyleBrief} from './style.js';
 import {serializeBrief} from './brief.js';
+import type {StoryboardState} from './storyboard.js';
+
+export * from './storyboard.js';
 
 export {StyleBriefSchema, type StyleBrief} from './style.js';
 export {serializeBrief, STYLE_BRIEF_KEYS} from './brief.js';
 
 export const IdSchema = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/, 'Invalid record ID');
+export const VoiceoverTrackSchema = z.object({
+  shotId: IdSchema, assetId: IdSchema, hash: z.string().regex(/^[a-f0-9]{64}$/),
+  text: z.string().trim().min(1).max(3000), durationMs: z.number().positive().max(120_000),
+  volume: z.number().min(0).max(1), sampleRate: z.number().int().min(8000).max(96000),
+}).strict();
+export type VoiceoverTrack = z.infer<typeof VoiceoverTrackSchema>;
 const TimestampSchema = z.string().datetime();
 const TextSchema = z.string().trim().min(1).max(100_000);
 
@@ -19,6 +28,9 @@ export class StudioError extends Error {
 
 export function createId(): string { return randomUUID(); }
 export function sha256(value: string | Uint8Array): string { return createHash('sha256').update(value).digest('hex'); }
+export function sourceFingerprint(files: Array<{path: string; content: string}>, shots: unknown[], voiceovers?: VoiceoverTrack[]): string {
+  return sha256(JSON.stringify({files, shots, ...(voiceovers?.length ? {voiceovers} : {})}));
+}
 export function briefHash(brief: string, style?: Partial<StyleBrief>): string { return sha256(serializeBrief(brief, style)); }
 
 export function validateSourcePath(value: string): string {
@@ -126,7 +138,7 @@ export const JobStatusSchema = z.enum(['queued', 'running', 'succeeded', 'failed
 export const JobSchema = z.object({
   id: IdSchema,
   projectId: IdSchema,
-  kind: z.enum(['chat', 'generate', 'revise', 'build', 'screenshot']),
+  kind: z.enum(['chat', 'director', 'generate', 'revise', 'voiceover', 'build', 'screenshot', 'export', 'visual-qa']),
   status: JobStatusSchema,
   message: z.string().max(4000),
   createdAt: TimestampSchema,
@@ -163,6 +175,7 @@ export interface ProjectSnapshot {
   comments: Comment[];
   messages: Message[];
   jobs: Job[];
+  storyboard?: StoryboardState;
 }
 
 export const candidateTerminalStatuses = new Set<CandidateStatus>(['failed', 'cancelled', 'applied', 'discarded', 'stale']);

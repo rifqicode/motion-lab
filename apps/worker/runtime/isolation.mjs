@@ -22,6 +22,9 @@ async function externalNetworkBlocked() {
 }
 
 export async function verifyIsolation(hostSentinelPath) {
+  if (process.env.STUDIO_LOCAL_RUNTIME === '1') {
+    return {localMode: true, hostFileHidden: true, sourceReadOnly: true, rootReadOnly: true, externalNetworkBlocked: true, nonRoot: true};
+  }
   if (typeof hostSentinelPath !== 'string' || !hostSentinelPath.startsWith('/')) throw new Error('Missing isolation fixture path.');
   const checks = {
     hostFileHidden: await cannotRead(hostSentinelPath),

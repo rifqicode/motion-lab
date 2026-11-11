@@ -32,9 +32,9 @@ export function Header({
 
   return (
     <header className="app-header">
-      <div className="brand">Studio lokal<span>Creative workspace</span></div>
+      <div className="brand">Studio Lokal<span>Creative workspace</span></div>
       <div className="project-picker">
-        <label className="sr-only" htmlFor="project-picker">Project aktif</label>
+        <label className="picker-field" htmlFor="project-picker"><span>Project</span>
         <select
           id="project-picker"
           value={projectId}
@@ -45,7 +45,8 @@ export function Header({
           {projects.map(item => (
             <option key={item.id} value={item.id}>{item.name}</option>
           ))}
-        </select>
+        </select></label>
+        <label className="picker-field engine-field" htmlFor="agent-picker"><span>Engine</span>
         <select
           id="agent-picker"
           value={currentAgent}
@@ -56,8 +57,8 @@ export function Header({
         >
           <option value="antigravity">Antigravity</option>
           <option value="codex">Codex</option>
-        </select>
-        <button onClick={onToggleNewProject}>Project baru</button>
+        </select></label>
+        <button onClick={onToggleNewProject}><span aria-hidden="true">＋</span> Project baru</button>
       </div>
       <div className="runtime-status">
         <span className={agentOk ? 'status-ok' : 'muted'}>

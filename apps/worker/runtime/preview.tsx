@@ -1,6 +1,8 @@
 import React, {useEffect, useRef} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Player, type PlayerRef, type CallbackListener} from '@remotion/player';
+// The immutable preview is served under a project/build prefix.
+(window as unknown as {remotion_staticBase: string}).remotion_staticBase = new URL('.', window.location.href).pathname.replace(/\/$/, '');
 import {StudioComposition} from 'studio:composition';
 
 const meta = __STUDIO_META__;
@@ -69,7 +71,7 @@ function App() {
   }, []);
   return <PreviewBoundary><Player ref={playerRef} component={StudioComposition}
     durationInFrames={meta.durationFrames} compositionWidth={meta.width} compositionHeight={meta.height}
-    fps={meta.fps} controls={false} clickToPlay={false} initiallyMuted numberOfSharedAudioTags={0}
+    fps={meta.fps} controls={false} clickToPlay={false} numberOfSharedAudioTags={2}
     style={{width: '100%', height: '100%'}}
     errorFallback={({error}) => { emit('error', {message: error.message}); return <p role="alert">Preview gagal dijalankan.</p>; }}
   /></PreviewBoundary>;

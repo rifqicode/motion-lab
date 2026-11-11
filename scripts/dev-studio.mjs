@@ -13,7 +13,7 @@ await fs.mkdir(path.join(root, 'out', 'studio-server'), {recursive: true});
 const editorEntry = path.join(root, 'apps', 'editor', 'src', 'index.tsx');
 const editorExists = await fs.stat(editorEntry).then(() => true, () => false);
 if (editorExists) {
-  await build({entryPoints: [editorEntry], outfile: path.join(root, 'out', 'studio-editor', 'editor.js'), bundle: true, platform: 'browser', format: 'iife', jsx: 'automatic', sourcemap: true, alias: {'@studio/studio-core/brief': path.join(root, 'packages/studio-core/src/brief.ts')}, define: {'process.env.NODE_ENV': '"development"'}});
+  await build({entryPoints: [editorEntry], outfile: path.join(root, 'out', 'studio-editor', 'editor.js'), bundle: true, platform: 'browser', format: 'iife', jsx: 'automatic', sourcemap: true, alias: {'@studio/studio-core/brief': path.join(root, 'packages/studio-core/src/brief.ts'), '@studio/studio-core/storyboard': path.join(root, 'packages/studio-core/src/storyboard.ts')}, define: {'process.env.NODE_ENV': '"development"'}});
   await fs.copyFile(path.join(root, 'apps', 'editor', 'index.html'), path.join(root, 'out', 'studio-editor', 'index.html'));
 } else {
   console.log('Editor UI belum tersedia; API backend tetap dapat dijalankan.');

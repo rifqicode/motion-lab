@@ -53,7 +53,7 @@ export function BriefPanel({
         </span>
       </div>
       <p className="muted">
-        Tentukan pesan dan urutan kejadian untuk satu shot. Tinjau tab Style juga sebelum menyetujui arah kreatifnya.
+        Tentukan pesan, audiens, dan arah cerita. Director memakai Brief + Style tersimpan untuk menyusun storyboard.
       </p>
       {styleDirty && (
         <p className="style-notice">
@@ -83,31 +83,21 @@ export function BriefPanel({
       <div className="generate-section">
         <button
           className="primary generate-button"
-          disabled={
-            locked ||
-            !approved ||
-            hasCandidate ||
-            !agentAuthenticated ||
-            !status?.runner.available
-          }
+          disabled={locked}
           onClick={onGenerate}
         >
-          {isGenerating
-            ? `${agentLabel} sedang membuat shot…`
-            : hasCurrentRevision
-            ? 'Generate kandidat baru'
-            : 'Generate shot pertama'}
+          Buka storyboard
         </button>
         <p className="muted">
           {isGenerating
-            ? 'Proses build Remotion sedang berjalan di timeline...'
+            ? 'Progres generation tersedia di preview.'
             : hasCandidate
             ? 'Selesaikan review kandidat sebelum generate lagi.'
             : dirty || styleDirty
             ? 'Simpan atau buang draft Brief + Style terlebih dahulu.'
             : !approved
-            ? 'Setujui Brief + Style untuk mulai menulis kode.'
-            : `${agentLabel} menulis TSX, lalu studio memeriksa build dan frame.`}
+            ? 'Periksa storyboard dan setujui sebelum shot dibuat.'
+            : 'Lanjutkan ke storyboard untuk meninjau shot dan memulai generation.'}
         </p>
       </div>
     </div>

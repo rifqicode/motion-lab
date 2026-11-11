@@ -1,0 +1,372 @@
+/* Portrait review workspace: orange marks primary actions and the current shot;
+   teal marks supporting actions and saved states, following the approved reference. */
+:root {
+  --bg-canvas: #0c1011;
+  --bg-panel: #121819;
+  --bg-surface: #1a2325;
+  --bg-surface-hover: #253033;
+  --bg-input: #101617;
+  --accent: #ff8a19;
+  --accent-hover: #ffa347;
+  --accent-pressed: #ed7a0b;
+  --accent-subtle: #332313;
+  --text-main: #edf3f4;
+  --text-secondary: #b5c3ca;
+  --text-muted: #a4b6c0;
+  --status-ok: #85e0ba;
+  --teal: #48d1cb;
+  --control-outline: #63757b;
+}
+
+button, select, summary {cursor: pointer;}
+button:active:not(:disabled) {transform: translateY(1px);}
+button:disabled, select:disabled {cursor: not-allowed;}
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+button, input, select, textarea {border-color: var(--control-outline);}
+button {font-size: 12px; min-height: 36px; border-radius: 6px;}
+button.primary {background: var(--accent); color: #171009; border-color: var(--accent); font-weight: 700;}
+button.primary:hover:not(:disabled) {background: var(--accent-hover); color: #171009;}
+.app-shell {min-height: 100dvh;}
+.app-header {
+  min-height: 76px;
+  gap: 24px;
+  padding: 10px 22px;
+  background: #101617;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.brand {font-size: 16px; white-space: nowrap; line-height: 1.3;}
+.brand span {font-size: 10px; font-weight: 400; color: var(--text-secondary);}
+.project-picker {gap: 12px; flex: 1; align-items: flex-end; margin-left: 0; min-width: 0;}
+.picker-field {display: grid; gap: 4px; width: min(260px, 24vw); min-width: 0;}
+.picker-field > span {font-size: 10px; color: var(--text-secondary);}
+.project-picker .picker-field select {width: 100%; max-width: none; font-size: 12px; height: 36px; background-color: var(--bg-surface);}
+.picker-field.engine-field {width: min(170px, 16vw);}
+.project-picker > button {white-space: nowrap; background: transparent;}
+.runtime-status {gap: 8px; font-size: 10px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end;}
+.runtime-status > span {border: 1px solid #335b4b; border-radius: 18px; padding: 5px 10px; white-space: nowrap;}
+.runtime-status > span.status-ok {background: #122a22; color: var(--status-ok);}
+.runtime-status > span::before {content: '●'; margin-right: 5px; font-size: 8px; width: auto; height: auto; background: none; box-shadow: none;}
+.runtime-status > button {min-height: 34px; font-size: 11px;}
+
+.project-toolbar {display: flex; align-items: center; gap: 16px; padding: 18px 22px; min-height: 88px;}
+.project-heading {min-width: 0; margin-right: auto;}
+.project-heading h1 {font-size: clamp(18px, 1.5vw, 23px); overflow-wrap: anywhere; line-height: 1.3;}
+.project-metadata {display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 8px;}
+.project-metadata > span {font-size: 10px; padding: 2px 7px; border-radius: 3px; background: var(--bg-surface); color: var(--text-secondary);}
+.project-metadata > .local-save {background: transparent; padding-left: 6px;}
+.local-save::before {content: '✓'; color: var(--teal); margin-right: 6px;}
+.workflow-nav {display: flex; gap: 6px; align-items: center; flex-wrap: wrap;}
+.workflow-nav button {border-radius: 18px; min-height: 32px; padding: 5px 12px; font-size: 11px; background: transparent; color: var(--text-secondary);}
+.workflow-nav .step-complete {background: #122a22; border-color: #335b4b; color: var(--status-ok);}
+.workflow-nav .step-preview {background: #332313; border-color: #b46a19; color: #ffb165;}
+.workflow-nav button[aria-pressed=true] {box-shadow: inset 0 -2px currentColor;}
+.export-entry {padding: 8px 18px; white-space: nowrap;}
+.workspace-switcher {display: none;}
+
+.workspace {
+  grid-template-columns: minmax(270px, 300px) minmax(0, 1fr) minmax(260px, 290px);
+  gap: 12px;
+  margin: 0 22px 16px;
+  height: calc(100dvh - 218px);
+  min-height: 500px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+.idea-column, .preview-column, .review-column {
+  min-width: 0;
+  min-height: 0;
+  max-height: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 11px;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+.tab-bar {min-height: 46px; padding: 0 12px; gap: 8px; background: transparent; flex-wrap: nowrap;}
+.tab-bar button {min-height: 44px; font-size: 12px; padding: 8px; color: var(--text-secondary);}
+.idea-tabs {align-items: center;}
+.idea-tabs > button {flex: 1; border-bottom: 0; border-radius: 6px; min-height: 32px;}
+.idea-tabs > button[aria-pressed=true] {background: #253034; color: var(--text-main);}
+.tab-count {display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 4px; background: #354247; font-size: 10px;}
+.context-menu {position: relative; flex-shrink: 0; z-index: 5;}
+.context-menu summary {list-style: none; display: grid; place-items: center; min-width: 32px; min-height: 36px; color: var(--text-secondary); font-size: 18px; border-radius: 5px;}
+.context-menu summary::-webkit-details-marker {display: none;}
+.context-menu summary:hover {background: var(--bg-surface-hover);}
+.context-menu > div {position: absolute; top: 100%; right: 0; display: grid; gap: 5px; width: 160px; padding: 8px; background: #253033; border: 1px solid var(--control-outline); border-radius: 7px; box-shadow: 0 8px 20px #0006;}
+.context-menu > div button {text-align: left; border: 0; border-radius: 4px; color: var(--text-main); background: transparent;}
+.context-menu > div button:hover, .context-menu > div button[aria-pressed=true] {background: #354448;}
+.review-column > .review-tabs {flex-wrap: nowrap; gap: 0; padding: 0 10px; align-items: center;}
+.review-tabs > button {flex: 1; min-width: 0;}
+.review-tabs > button[aria-pressed=true] {color: var(--text-main); border-bottom-color: var(--accent);}
+.review-content {display: flex; flex-direction: column; gap: 14px; padding: 18px 15px; min-height: 0; overflow: auto;}
+.review-content > .muted {font-size: 12px; line-height: 1.6;}
+.revision {padding: 14px; border: 1px solid #335b4b; border-radius: 9px; background: #101c19; margin: 0;}
+.revision p {font-size: 12px; line-height: 1.7; margin: 14px 0;}
+.revision .eyebrow {color: var(--status-ok); font-size: 10px; text-transform: none; letter-spacing: 0;}
+.revision time {display: block; font-size: 10px;}
+.revision .button-row {margin-top: 14px;}
+.revision button {font-size: 11px;}
+.candidate-review {padding: 14px; max-height: 240px; overflow: auto;}
+
+.chat-panel {height: auto; min-height: 0;}
+.messages {padding: 14px; overscroll-behavior: contain;}
+.message {padding: 12px; margin-bottom: 12px; border-color: var(--border-subtle); background: var(--bg-surface);}
+.message.user {background: #111d20; border-color: #31464b;}
+.message-author {font-size: 10px; color: #ffb165; text-transform: none; letter-spacing: 0;}
+.message.user .message-author {color: var(--teal);}
+.message-content {margin-top: 9px; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere;}
+.message-content .message-block + .message-block {margin-top: 12px;}
+.message-content p {font-size: inherit; margin: 0; line-height: inherit; white-space: pre-wrap;}
+.message-content h3 {font-size: 12px; line-height: 1.6; margin: 10px 0 6px; color: #ffc080;}
+.message-content code {font-size: 11px; color: var(--teal);}
+.message-content hr {border: 0; border-top: 1px solid var(--border-crisp); margin: 14px 0;}
+.message-content .message-list-item {display: flex; gap: 7px; align-items: baseline;}
+.message-list-item > span:last-child {min-width: 0;}
+.chat-storyboard-sticky-bar {padding: 10px 14px; background: #101617;}
+.chat-generate-storyboard-btn {min-height: 36px; border: 1px solid #b46a19; color: #ffb165; background: transparent; box-shadow: none; font-size: 12px;}
+.chat-generate-storyboard-btn:hover:not(:disabled) {background: var(--accent-subtle); color: #ffc080; box-shadow: none;}
+.chat-compose {padding: 12px 14px; gap: 9px; border-top: 0; background: #101617;}
+.chat-compose label {font-size: 11px;}
+.chat-compose textarea {min-height: 82px; max-height: 180px; font-size: 12px; background: var(--bg-surface); resize: vertical;}
+.chat-suggestions {display: flex; gap: 5px; flex-wrap: wrap;}
+.chat-suggestions button {padding: 4px 8px; min-height: 28px; font-size: 10px; border: 1px solid #52656b; border-radius: 14px; background: var(--bg-surface);}
+.chat-send-row {display: flex; align-items: center; justify-content: space-between; gap: 12px;}
+.chat-send-row > span {font-size: 10px; color: var(--text-muted); max-width: 145px;}
+.chat-send {background: var(--teal); color: #09201f; border-color: var(--teal); padding: 6px 14px; font-weight: 700;}
+.chat-send:hover:not(:disabled) {background: #78e1db; color: #09201f;}
+.director-mode {display: flex; gap: 5px;}
+.director-mode button {flex: 1; background: transparent; color: var(--text-secondary); min-height: 36px; font-size: 11px;}
+.director-mode button[aria-pressed=true] {background: #253034; color: var(--text-main); border-color: var(--teal);}
+.director-mode button:last-child[aria-pressed=true] {border-color: var(--accent); color: #ffb165;}
+.revision-context {font-size: 10px; line-height: 1.6; color: var(--text-secondary);}
+.chat-send.is-revision {background: var(--accent); border-color: var(--accent); color: #171009;}
+.chat-send.is-revision:hover:not(:disabled) {background: var(--accent-hover); color: #171009;}
+.typing-indicator .dot, .pulse-indicator, .btn-spinner {animation: none;}
+.chat-loading-btn {animation: none;}
+
+.preview-column {display: flex; flex-direction: column;}
+.preview-column > .section-head {min-height: 46px; padding: 9px 15px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;}
+.preview-head-actions {gap: 8px; min-width: 0;}
+.preview-head-actions .muted {font-size: 10px;}
+.fullscreen-toggle-button {min-height: 28px; padding: 4px 7px; font-size: 10px;}
+.preview-stage {flex: 1 1 0; min-height: 180px; padding: 18px; background: #090e0f; overflow: hidden;}
+.portrait {height: 100%; width: auto; max-width: 100%; max-height: 100%; aspect-ratio: 9 / 16; border-radius: 10px; box-shadow: none; flex-shrink: 0;}
+.preview-stage:fullscreen {min-height: 0; padding: 0;}
+.preview-stage:fullscreen .portrait {height: 100dvh; width: auto; max-width: 100vw; border-radius: 0;}
+.preview-empty {min-height: 0; padding: 16px; gap: 12px;}
+.preview-empty .empty-mark {font-size: 26px;}
+.preview-empty h3 {font-size: 15px;}
+.preview-empty p, .preview-empty > span:last-child {font-size: 11px;}
+.timeline {padding: 12px 15px; flex-shrink: 0;}
+.transport {margin-bottom: 10px; gap: 8px; flex-wrap: wrap;}
+.transport .button-row {gap: 5px;}
+.transport button {min-height: 34px; min-width: 30px; padding: 5px 8px; font-size: 11px;}
+.transport .play-button {background: var(--accent); color: #171009; border-color: var(--accent); padding-inline: 14px;}
+.transport .play-button:hover:not(:disabled) {background: var(--accent-hover); color: #171009;}
+.transport .fullscreen-button {min-width: 30px;}
+.timecode {margin-left: auto; font-size: 10px; padding: 6px 8px; background: var(--bg-surface);}
+.scrubber-label {font-size: 10px; margin-bottom: 5px;}
+.timeline input[type=range] {height: 18px; margin: 0 0 8px; accent-color: var(--accent);}
+.timeline input[type=range]::-webkit-slider-runnable-track {height: 4px; background: #35464d; border-radius: 3px;}
+.timeline input[type=range]::-webkit-slider-thumb {margin-top: -4px; box-shadow: none;}
+.revision-heading {display: flex; justify-content: space-between; gap: 8px; align-items: center;}
+.revision-id {font: 10px var(--font-mono); color: var(--text-secondary);}
+.shot-navigation {display: flex; gap: 5px; overflow-x: auto; padding: 4px 0 7px;}
+.shot-navigation button {flex: 1 0 36px; min-height: 36px; border: 1px solid #62767d; background: #222e32; color: var(--text-secondary); padding: 5px; font-size: 11px;}
+.shot-navigation button[aria-pressed=true] {background: var(--accent); border-color: var(--accent); color: #171009; font-weight: 700;}
+.shot-navigation button:hover:not(:disabled):not([aria-pressed=true]) {background: #35474d; color: var(--text-main);}
+.current-shot {background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 7px; padding: 11px 12px; margin-top: 5px;}
+.current-shot > div {display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between;}
+.current-shot-label {color: #ffb165; font-size: 10px; font-weight: 600;}
+.current-shot h3 {font-size: 12px; text-transform: capitalize; margin-top: 5px;}
+.shot-id {font: 9px var(--font-mono); color: var(--text-secondary); overflow-wrap: anywhere;}
+.current-shot p {font-size: 11px; line-height: 1.6; margin-top: 6px; max-height: 54px; overflow: auto;}
+.timeline-job-progress {max-height: 150px; overflow: auto; margin-top: 10px; padding: 10px; box-shadow: none; animation: none;}
+.job-bar {position: static; min-height: 0; padding: 6px 22px 12px; background: transparent; border: 0; font-size: 10px;}
+.job-bar > div {display: flex; gap: 12px; align-items: baseline;}
+.job-bar p {font-size: 10px; margin: 0;}
+
+.storyboard-panel {min-height: 0; flex: 1; overflow: auto; padding: 14px; gap: 12px; overscroll-behavior: contain;}
+.storyboard-panel input, .storyboard-panel textarea, .storyboard-panel select {border-color: var(--control-outline);}
+.storyboard-panel .section-head {flex-wrap: wrap;}
+.storyboard-panel .section-head > span {font-size: 10px;}
+.storyboard-shots {gap: 7px;}
+.storyboard-shots button {padding: 11px; background: var(--bg-surface);}
+.storyboard-shot-heading {font-size: 11px;}
+.storyboard-shot-intent, .storyboard-shot-visual {font-size: 11px; line-height: 1.6;}
+.storyboard-shot-visual {display: none;}
+.storyboard-save {position: sticky; bottom: -14px; margin: 0 -14px -14px; padding: 12px 14px; border-top: 1px solid var(--control-outline); background: #121819; z-index: 2; box-shadow: 0 -8px 16px #0003;}
+.storyboard-save button {min-height: 36px;}
+.storyboard-save > p {font-size: 10px;}
+.storyboard-expand {margin: 8px 14px 0; flex-shrink: 0; font-size: 11px; background: transparent; color: var(--teal);}
+.workspace.storyboard-expanded {grid-template-columns: minmax(0, 1fr) minmax(260px, 290px);}
+.storyboard-expanded > .preview-column {display: none;}
+.storyboard-expanded .storyboard-panel {display: flex; flex-direction: column; align-items: stretch; gap: 14px;}
+.storyboard-expanded .storyboard-panel > .storyboard-shots {max-height: none; overflow: visible; margin: 0; flex-shrink: 0;}
+.storyboard-expanded .storyboard-save {bottom: -14px; align-self: end;}
+.shot-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(88dvh, 960px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--control-outline);
+  border-radius: 12px;
+  color: var(--text-main);
+  background: var(--bg-panel);
+  box-shadow: 0 18px 60px #0008;
+  overflow-y: auto;
+}
+.shot-dialog::backdrop {background: #050a0cbd;}
+.shot-dialog-header {position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 22px; background: var(--bg-panel); border-bottom: 1px solid var(--border-crisp); z-index: 2;}
+.shot-dialog-header h2 {font-size: 19px; margin-top: 4px; overflow-wrap: anywhere;}
+.shot-dialog-header button {flex-shrink: 0;}
+.shot-dialog-intro {font-size: 12px; color: var(--text-secondary); padding: 16px 22px 0;}
+.shot-dialog .storyboard-shot-detail {margin: 18px 22px; padding: 0; border: 0; min-width: 0;}
+.shot-dialog .storyboard-shot-detail legend {font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;}
+.shot-dialog-footer {position: sticky; bottom: 0; display: flex; gap: 10px; flex-wrap: wrap; padding: 16px 22px; background: var(--bg-panel); border-top: 1px solid var(--border-crisp);}
+.shot-dialog-footer p {flex-basis: 100%; font-size: 11px; margin-top: 3px;}
+.shot-discuss {background: var(--teal); color: #09201f; border-color: var(--teal); font-weight: 600;}
+.shot-discuss:hover:not(:disabled) {background: #78e1db; color: #09201f;}
+.shot-chat-context {padding: 12px 14px; background: #142b2a; border-bottom: 1px solid #4b8580; flex-shrink: 0;}
+.shot-chat-context > div:first-child {display: grid; gap: 3px;}
+.shot-chat-context > div > span {font-size: 10px; color: var(--teal);}
+.shot-chat-context strong {font-size: 13px; overflow-wrap: anywhere;}
+.shot-chat-context p {font-size: 10px; color: var(--text-secondary); margin: 6px 0 9px;}
+.shot-chat-context button {font-size: 10px; padding: 5px 8px; background: transparent;}
+.brief-panel, .style-panel {min-height: 0; overflow: auto; padding: 15px; gap: 14px;}
+.brief-panel .brief-editor {min-height: 240px; max-height: none; flex: 1; font-size: 13px;}
+.brief-panel > .muted, .style-panel > .muted {font-size: 12px;}
+.style-field p {font-size: 11px;}
+.style-actions {position: static; background: transparent;}
+.activity-current {border-left: 0; border-radius: 6px;}
+.activity-panel h2, .qa-panel h3, .export-panel h2 {font-size: 14px;}
+.activity-shot-heading {flex-wrap: wrap;}
+.activity-shot-heading strong {font-size: 11px;}
+.activity-shot-heading span {font-size: 10px;}
+.new-project {margin: 0 22px 12px; padding: 14px; border-radius: 8px; background: var(--bg-panel);}
+.new-project input {min-width: 0;}
+
+@media (min-width: 1700px) {
+  .workspace {grid-template-columns: 340px minmax(0, 1fr) 320px;}
+  .workspace.storyboard-expanded {grid-template-columns: minmax(0, 1fr) 320px;}
+  .message-content {font-size: 13px;}
+}
+@media (max-width: 1300px) {
+  .app-header {gap: 14px; padding-inline: 16px;}
+  .project-toolbar {padding-inline: 16px; gap: 10px;}
+  .project-picker {gap: 8px;}
+  .runtime-status {max-width: 250px;}
+  .workspace {margin-inline: 16px; grid-template-columns: 270px minmax(0, 1fr) 260px;}
+  .workflow-nav button {font-size: 10px; padding: 5px 9px;}
+  .project-metadata .local-save {width: 100%; padding-left: 0;}
+}
+@media (max-width: 1150px) {
+  .app-header {flex-wrap: wrap; gap: 10px 18px;}
+  .project-picker {margin-left: 0;}
+  .runtime-status {width: auto; max-width: none; margin-left: auto; justify-content: flex-end;}
+  .project-toolbar {flex-wrap: wrap; min-height: 90px;}
+  .project-heading {flex: 1 1 50%;}
+  .workflow-nav {order: 3; flex: 1 1 100%;}
+  .workspace-switcher {display: flex; gap: 8px; margin: 0 16px 10px;}
+  .workspace-switcher button {flex: 1; min-height: 40px; font-size: 12px; background: var(--bg-panel);}
+  .workspace-switcher button[aria-pressed=true] {color: var(--teal); background: #18302f; border-color: #4fa29e;}
+  .workspace, .workspace.storyboard-expanded {grid-template-columns: minmax(270px, 320px) minmax(0, 1fr); height: calc(100dvh - 280px); min-height: 580px;}
+  .workspace[data-pane=preview] {grid-template-columns: minmax(0, 1fr);}
+  .workspace[data-pane=review] {grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);}
+  .workspace[data-pane=preview] > .idea-column, .workspace[data-pane=review] > .idea-column {display: none;}
+  .workspace:not([data-pane=review]) > .review-column {display: none;}
+  .workspace > .preview-column {display: flex;}
+  .review-column {grid-column: auto; max-height: none;}
+  .review-content {display: flex;}
+  .storyboard-expand {display: none;}
+  .workspace.storyboard-expanded .storyboard-panel {display: flex; flex-direction: column; align-items: stretch;}
+  .workspace.storyboard-expanded .storyboard-shots {max-height: none; flex-shrink: 0;}
+  .portrait {height: 100%; width: auto; max-height: 100%;}
+  .preview-stage {min-height: 180px;}
+}
+@media (max-width: 740px) {
+  .shot-dialog {width: calc(100vw - 20px); max-height: 92dvh;}
+  .shot-dialog-header, .shot-dialog-footer {padding: 12px 14px;}
+  .shot-dialog-header h2 {font-size: 16px;}
+  .shot-dialog-intro {padding: 12px 14px 0;}
+  .shot-dialog .storyboard-shot-detail {margin: 16px 14px;}
+  .app-header {padding: 12px; gap: 12px;}
+  .brand {font-size: 16px;}
+  .project-picker {order: 3; flex-basis: 100%; width: 100%; flex-wrap: wrap; align-items: end;}
+  .picker-field {width: auto; flex: 1 1 150px;}
+  .picker-field.engine-field {width: auto; flex: 1 1 100px;}
+  .project-picker > button {flex: 0 0 auto; min-height: 44px;}
+  .project-picker .picker-field select {height: 44px; font-size: 12px;}
+  .runtime-status {margin-left: auto; gap: 5px; font-size: 9px; flex: 1;}
+  .runtime-status > span {padding: 4px 6px;}
+  .runtime-status > button {min-height: 44px;}
+  .project-toolbar {padding: 14px 12px; gap: 12px;}
+  .project-heading {flex-basis: 100%;}
+  .project-metadata .local-save {width: auto; padding-left: 4px;}
+  .project-heading h1 {font-size: 20px;}
+  .workflow-nav {order: 0; flex: 1 1 100%; flex-wrap: nowrap;}
+  .workflow-nav button {flex: 1; min-height: 44px; padding: 6px; font-size: 11px;}
+  .export-entry {width: 100%; min-height: 44px;}
+  .workspace-switcher {margin-inline: 12px; gap: 6px;}
+  .workspace-switcher button {min-height: 44px; font-size: 11px;}
+  .workspace, .workspace.storyboard-expanded, .workspace[data-pane=review], .workspace[data-pane=preview] {display: grid; grid-template-columns: minmax(0, 1fr); margin: 0 12px 12px; height: calc(100dvh - 390px); min-height: 640px; gap: 0;}
+  .workspace[data-pane=idea] > .preview-column, .workspace[data-pane=review] > .preview-column {display: none;}
+  .workspace > .idea-column, .workspace > .review-column {max-height: none; min-height: 0;}
+  .chat-panel {height: auto; flex: 1;}
+  .chat-suggestions button {min-height: 44px; font-size: 11px;}
+  .chat-compose textarea, .style-panel textarea, .brief-panel textarea, .storyboard-panel textarea, .storyboard-panel input, .comment-compose textarea {font-size: 16px;}
+  .chat-compose {padding: 12px;}
+  .chat-generate-storyboard-btn, .chat-send, .director-mode button {min-height: 44px;}
+  .tab-bar button, .context-menu summary, .context-menu > div button {min-height: 44px;}
+  .context-menu summary {min-width: 44px;}
+  .storyboard-panel {padding: 14px; overflow: auto;}
+  .storyboard-panel button {min-height: 44px;}
+  .portrait {width: auto; height: 100%; max-width: 100%; max-height: 100%;}
+  .preview-stage {padding: 12px; min-height: 230px;}
+  .preview-empty {padding: 12px;}
+  .preview-head-actions {flex-wrap: wrap; justify-content: flex-end;}
+  .preview-column > .section-head {min-height: 52px; padding: 8px 12px;}
+  .fullscreen-toggle-button {min-height: 44px; font-size: 10px;}
+  .timeline {padding: 12px;}
+  .transport button {min-height: 44px; min-width: 44px; padding: 5px;}
+  .transport .play-button {padding-inline: 11px;}
+  .transport .fullscreen-button {min-width: 44px;}
+  .timecode {font-size: 10px;}
+  .shot-navigation button {flex-basis: 44px; min-height: 44px;}
+  .current-shot p {max-height: 54px;}
+  .workspace > .preview-column {overflow-y: auto;}
+  .review-content {padding: 14px; overflow: auto;}
+  .job-bar {padding: 0 12px 12px;}
+  .job-bar > div {flex-wrap: wrap; gap: 4px;}
+  .new-project {margin-inline: 12px; padding: 12px;}
+  .new-project input {width: 100%; min-width: 0; flex-basis: 100%;}
+  button {min-height: 44px;}
+}
+.voiceover-panel {display: grid; gap: 12px; min-width: 0; width: 100%; align-content: start; overflow-wrap: anywhere;}
+.voiceover-panel[hidden] {display: none;}
+.voiceover-panel h2 {font-size: 14px; margin: 0;}
+.voiceover-panel h3 {font-size: 12px; margin: 0;}
+.voiceover-panel p {margin: 0; line-height: 1.55;}
+.voiceover-panel label {font-size: 12px; color: var(--text-main);}
+.voiceover-panel form, .voiceover-listen {display: grid; gap: 10px; min-width: 0;}
+.voiceover-panel textarea, .voiceover-panel select {width: 100%; min-width: 0; max-width: 100%; background: var(--bg-input);}
+.voiceover-panel textarea {resize: vertical; min-height: 130px;}
+.voiceover-panel audio {display: block; width: 100%; min-width: 0; height: 54px;}
+.voiceover-panel button, .voiceover-panel select {min-height: 44px;}
+.voiceover-panel input[type=range] {width: 100%; min-width: 0; min-height: 44px; padding: 0; accent-color: var(--teal); cursor: pointer;}
+.voiceover-panel .voiceover-fit {display: flex; gap: 10px; align-items: center; min-height: 44px; cursor: pointer; line-height: 1.5;}
+.voiceover-fit input[type=checkbox] {flex: 0 0 18px; width: 18px; height: 18px; margin: 0; accent-color: var(--teal); cursor: pointer;}
+.voiceover-context {padding: 10px; border-left: 2px solid var(--accent); background: var(--accent-subtle);}
+.voiceover-listen, .voiceover-job {border-top: 1px solid var(--control-outline); padding-top: 12px;}
+@media (max-width: 740px) {
+  .voiceover-panel textarea, .voiceover-panel select {font-size: 16px;}
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {animation: none !important; transition: none !important; scroll-behavior: auto !important;}
+}

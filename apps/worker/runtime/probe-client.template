@@ -1,0 +1,29 @@
+import React, {useEffect, useRef} from 'react';
+import {createRoot} from 'react-dom/client';
+import {Player} from '@remotion/player';
+import {StudioComposition, meta} from './active';
+const fail = error => {window.__studioProbe = {error: String(error.message ?? error)};};
+class Boundary extends React.Component {
+  state = {error: false};
+  static getDerivedStateFromError() {return {error: true};}
+  componentDidCatch(error) {fail(error);}
+  render() {return this.state.error ? null : this.props.children;}
+}
+function App() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const frame = Number(new URLSearchParams(location.search).get('frame') ?? 0);
+    const player = ref.current;
+    if (!player) return;
+    player.seekTo(frame);
+    player.addEventListener('error', event => fail(event.detail.error));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!window.__studioProbe?.error) window.__studioProbe = {ready: true, frame, buildId: meta.buildId};
+    }));
+  }, []);
+  return <Boundary><Player ref={ref} component={StudioComposition} durationInFrames={meta.durationFrames}
+    compositionWidth={720} compositionHeight={1280} fps={30} controls={false} clickToPlay={false}
+    initiallyMuted numberOfSharedAudioTags={0} style={{width:'100%',height:'100%'}}
+    errorFallback={({error}) => {queueMicrotask(() => fail(error));return null;}}/></Boundary>;
+}
+createRoot(document.getElementById('root')).render(<App/>);

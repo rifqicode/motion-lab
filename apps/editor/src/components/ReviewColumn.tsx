@@ -1,6 +1,10 @@
 import React from 'react';
-import type {Candidate, Revision, Comment} from '../api.js';
+import type {Candidate, Revision, Comment, Job} from '../api.js';
+import type {ExportArtifact, GenerationRun, QaReport} from '../studio-state.js';
+import {ActivityPanel} from './ActivityPanel.js';
+import {ExportPanel} from './ExportPanel.js';
 import {SourceViewer} from './SourceViewer.js';
+import {PanelMenu} from './PanelMenu.js';
 import type {ReviewTab, SourceFile} from './types.js';
 
 const short = (id: string) => id.slice(0, 7);
@@ -29,7 +33,7 @@ export interface ReviewColumnProps {
   agentProvider?: 'codex' | 'antigravity';
   runnerAvailable: boolean;
   onSaveComment: () => void;
-  onJump: (revisionId: string, localFrame: number) => void;
+  onJump: (revisionId: string, localFrame: number, shotId: string) => void;
   onGenerateRevision: (commentId: string) => void;
   onToggleCommentStatus: (commentId: string, currentStatus: string) => void;
   // Versions tab
@@ -43,6 +47,21 @@ export interface ReviewColumnProps {
   shown: Candidate | Revision | undefined;
   source: {before: SourceFile[]; after: SourceFile[]} | null;
   sourceError: string;
+  activityJob?: Job;
+  generationRun?: GenerationRun;
+  qaReports: QaReport[];
+  canRetryShots: boolean;
+  onRetryShot: (candidateId: string, shotId: string) => void;
+  onCancelShot: (candidateId: string, shotId: string) => void;
+  exports: ExportArtifact[];
+  exportRevision?: Revision;
+  exportJob?: Job;
+  onExport: () => void;
+  onDownloadExport: (id: string) => void;
+  onCancelExport?: () => void;
+  canVisualQa: boolean;
+  onVisualQa: () => void;
+  voiceoverPanel?: React.ReactNode;
 }
 
 export function ReviewColumn({
@@ -80,6 +99,21 @@ export function ReviewColumn({
   shown,
   source,
   sourceError,
+  activityJob,
+  generationRun,
+  qaReports,
+  canRetryShots,
+  onRetryShot,
+  onCancelShot,
+  exports,
+  exportRevision,
+  exportJob,
+  onExport,
+  onDownloadExport,
+  onCancelExport,
+  canVisualQa,
+  onVisualQa,
+  voiceoverPanel,
 }: ReviewColumnProps) {
   const isAntigravity = agentProvider === 'antigravity';
   const agentLabel = isAntigravity ? 'Antigravity' : 'Codex';
@@ -104,19 +138,18 @@ export function ReviewColumn({
           </button>
         </div>
       )}
-      <div className="tab-bar" role="group" aria-label="Review">
+      <div className="tab-bar review-tabs" role="group" aria-label="Review">
+        <button aria-pressed={reviewTab === 'versions'} onClick={() => onTabChange('versions')}>Versi</button>
         <button aria-pressed={reviewTab === 'comments'} onClick={() => onTabChange('comments')}>
           Komentar
         </button>
-        <button aria-pressed={reviewTab === 'versions'} onClick={() => onTabChange('versions')}>
-          Versi
-        </button>
-        <button aria-pressed={reviewTab === 'source'} onClick={() => onTabChange('source')}>
-          Kode
-        </button>
+        <button aria-pressed={reviewTab === 'export'} onClick={() => onTabChange('export')}>Export</button>
+        <button aria-pressed={reviewTab === 'voiceover'} onClick={() => onTabChange('voiceover')}>Audio</button>
+        <PanelMenu label="Aktivitas dan kode" items={[{label: 'Activity & QA', active: reviewTab === 'activity', onSelect: () => onTabChange('activity')}, {label: 'Kode', active: reviewTab === 'source', onSelect: () => onTabChange('source')}]} />
       </div>
       <div className="review-content">
-        {reviewTab === 'comments' ? (
+        {voiceoverPanel}
+        {reviewTab === 'voiceover' ? null : reviewTab === 'comments' ? (
           <>
             <form
               className="comment-compose"
@@ -161,9 +194,9 @@ export function ReviewColumn({
                   <div className="comment-meta">
                     <button
                       className="frame-link"
-                      onClick={() => onJump(item.anchor.revisionId, item.anchor.localFrame)}
+                      onClick={() => onJump(item.anchor.revisionId, item.anchor.localFrame, item.anchor.shotId)}
                     >
-                      F{item.anchor.localFrame} · {(item.anchor.localFrame / 30).toFixed(2)}s
+                      {item.anchor.shotId} · F{item.anchor.localFrame}
                     </button>
                     <span>{item.status === 'resolved' ? 'Selesai' : 'Terbuka'}</span>
                   </div>
@@ -211,9 +244,9 @@ export function ReviewColumn({
             )}
             {revisions.slice().reverse().map(item => (
               <article className="revision" key={item.id}>
-                <span className="eyebrow">
+                <div className="revision-heading"><span className="eyebrow">
                   {item.id === currentRevisionId ? 'Versi aktif' : `Versi ${short(item.id)}`}
-                </span>
+                </span><span className="revision-id">{short(item.id)}</span></div>
                 <p>{item.summary}</p>
                 <time className="muted small">{new Date(item.createdAt).toLocaleString('id-ID')}</time>
                 <div className="button-row">
@@ -228,7 +261,14 @@ export function ReviewColumn({
               </article>
             ))}
           </>
-        ) : (
+        ) : reviewTab === 'activity' ? <ActivityPanel
+          job={activityJob} run={generationRun} reports={qaReports} busy={busy} locked={locked} canRetry={canRetryShots}
+          onRetry={onRetryShot} onCancel={onCancelShot}
+          canReview={canVisualQa} onReview={onVisualQa}
+        /> : reviewTab === 'export' ? <ExportPanel
+          revision={exportRevision} exports={exports} job={exportJob} locked={locked} busy={busy} hasCandidate={hasCandidate} runnerReady={runnerAvailable}
+          onExport={onExport} onDownload={onDownloadExport} onCancel={onCancelExport}
+        /> : (
           <>
             <div className="section-head">
               <h2>{candidateView ? 'Source sebelum / sesudah' : 'Source komposisi'}</h2>

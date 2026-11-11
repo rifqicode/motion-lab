@@ -1,0 +1,5 @@
+chatterbox-tts==0.1.6
+s3tokenizer==0.3.0
+ml-dtypes==0.5.1
+setuptools==80.9.0
+

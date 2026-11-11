@@ -9,4 +9,4 @@ export interface SourceFile {
   content: string;
 }
 
-export type ReviewTab = 'comments' | 'versions' | 'source';
+export type ReviewTab = 'comments' | 'versions' | 'source' | 'activity' | 'export' | 'voiceover';

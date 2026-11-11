@@ -10,14 +10,18 @@ export interface FooterProps {
 
 export function Footer({latestJob}: FooterProps) {
   const statusLabel =
-    latestJob?.status === 'failed'
+    latestJob?.status === 'running' || latestJob?.status === 'queued'
+      ? 'Aktivitas AI'
+      : latestJob?.status === 'failed'
       ? 'Job gagal'
       : latestJob?.status === 'cancelled'
       ? 'Job dibatalkan'
       : 'Studio lokal';
 
   const statusMessage =
-    latestJob?.status === 'failed'
+    latestJob?.status === 'running' || latestJob?.status === 'queued'
+      ? latestJob.message
+      : latestJob?.status === 'failed'
       ? (latestJob.error ?? latestJob.message)
       : latestJob?.status === 'cancelled'
       ? 'Job dibatalkan.'

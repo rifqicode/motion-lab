@@ -1,6 +1,7 @@
 import type {StyleBrief} from '@studio/studio-core';
 import {serializeBrief} from '@studio/studio-core/brief';
 export type {Project, ProjectSnapshot, Revision, Candidate, ShotSpec, Job, Comment, StyleBrief, AgentProvider} from '@studio/studio-core';
+export type {Storyboard, StoryboardState} from '@studio/studio-core/storyboard';
 
 const session = document.querySelector<HTMLMetaElement>('meta[name="studio-session"]')?.content ?? '';
 export const previewOrigin = document.querySelector<HTMLMetaElement>('meta[name="studio-preview-origin"]')?.content ?? '';
@@ -9,6 +10,41 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
   const result = await response.json();
   if (!response.ok) throw new Error(result.message ?? `Request gagal (${response.status})`);
   return result as T;
+}
+export async function downloadExport(projectId: string, exportId: string): Promise<void> {
+  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/exports/${encodeURIComponent(exportId)}/file`, {headers: {'x-studio-session': session}});
+  if (!response.ok) {
+    const result = await response.json().catch(() => null);
+    throw new Error(result?.message ?? `Unduhan gagal (${response.status}).`);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = `motionlab-${exportId}.mp4`;
+  document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+export interface VoiceoverTrack {
+  shotId: string;
+  assetId: string;
+  text: string;
+  durationMs: number;
+  volume: number;
+}
+export interface VoiceoverState {
+  runtime: {available: boolean; reason?: string; device?: string};
+  tracks: VoiceoverTrack[];
+}
+export function loadVoiceovers(projectId: string, sourceId?: string): Promise<VoiceoverState> {
+  return api(`/projects/${encodeURIComponent(projectId)}/voiceovers${sourceId ? `?sourceId=${encodeURIComponent(sourceId)}` : ''}`);
+}
+export async function voiceoverAudioBlob(projectId: string, sourceId: string, assetId: string, signal: AbortSignal): Promise<Blob> {
+  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/voiceovers/${encodeURIComponent(assetId)}/audio?sourceId=${encodeURIComponent(sourceId)}`, {headers: {'x-studio-session': session}, signal});
+  if (!response.ok) {
+    const result = await response.json().catch(() => null);
+    throw new Error(result?.message ?? `Audio gagal dimuat (${response.status}).`);
+  }
+  return response.blob();
 }
 export async function hashBrief(brief: string, style?: StyleBrief): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(serializeBrief(brief, style)));

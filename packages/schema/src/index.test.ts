@@ -5,19 +5,74 @@ import {
   validateScene,
   safeValidateScene,
 } from './index.js';
-import fs from 'node:fs';
-import path from 'node:path';
 
 describe('Project and Scene Schema Validation', () => {
   it('validates golden sample postgres-cdc correctly', () => {
-    const goldenSamplePath = path.resolve(
-      __dirname,
-      '../../../examples/postgres-cdc/project.json'
-    );
-    const raw = fs.readFileSync(goldenSamplePath, 'utf-8');
-    const data = JSON.parse(raw);
+    const sampleProject = {
+      id: 'postgres-cdc',
+      title: 'PostgreSQL CDC Architecture',
+      aspectRatio: '9:16' as const,
+      fps: 30 as const,
+      sceneIds: ['scene-1', 'scene-2', 'scene-3'],
+      scenes: [
+        {
+          id: 'scene-1',
+          order: 1,
+          type: 'data-flow',
+          title: 'PostgreSQL Source',
+          narrationText: 'Data changes occur in the primary PostgreSQL database.',
+          durationFrames: 90,
+          nodes: [
+            { id: 'pg-1', kind: 'database', label: 'Postgres Primary' },
+            { id: 'wal-1', kind: 'log', label: 'Write-Ahead Log' },
+          ],
+          edges: [
+            { id: 'e1', from: 'pg-1', to: 'wal-1', kind: 'data-flow' },
+          ],
+          animationCues: [
+            { id: 'c1', preset: 'node-reveal', targetId: 'pg-1', startFrame: 0, durationFrames: 30 },
+          ],
+        },
+        {
+          id: 'scene-2',
+          order: 2,
+          type: 'data-flow',
+          title: 'Debezium Capture',
+          narrationText: 'Debezium reads the WAL stream and converts rows to change events.',
+          durationFrames: 90,
+          nodes: [
+            { id: 'deb-1', kind: 'service', label: 'Debezium Connector' },
+            { id: 'kafka-1', kind: 'queue', label: 'Kafka Topics' },
+          ],
+          edges: [
+            { id: 'e2', from: 'deb-1', to: 'kafka-1', kind: 'data-flow' },
+          ],
+          animationCues: [
+            { id: 'c2', preset: 'node-reveal', targetId: 'deb-1', startFrame: 0, durationFrames: 30 },
+          ],
+        },
+        {
+          id: 'scene-3',
+          order: 3,
+          type: 'focus-explain',
+          title: 'Downstream Consumers',
+          narrationText: 'Downstream microservices and caches consume real-time events.',
+          durationFrames: 90,
+          nodes: [
+            { id: 'svc-1', kind: 'service', label: 'Search Indexer' },
+            { id: 'cache-1', kind: 'database', label: 'Redis Cache' },
+          ],
+          edges: [
+            { id: 'e3', from: 'svc-1', to: 'cache-1', kind: 'sync' },
+          ],
+          animationCues: [
+            { id: 'c3', preset: 'node-reveal', targetId: 'svc-1', startFrame: 0, durationFrames: 30 },
+          ],
+        },
+      ],
+    };
 
-    const project = validateProject(data);
+    const project = validateProject(sampleProject);
     expect(project.id).toBe('postgres-cdc');
     expect(project.scenes.length).toBe(3);
     expect(project.aspectRatio).toBe('9:16');

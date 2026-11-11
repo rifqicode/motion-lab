@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
 import {z} from 'zod';
-import {IdSchema, ShotSpecSchema, SourcePathSchema, SourceProposalSchema, StudioError, createId, sha256, validateSourcePath, type ShotSpec, type SourceProposal} from '@studio/studio-core';
+import {IdSchema, ShotSpecSchema, SourcePathSchema, SourceProposalSchema, StudioError, VoiceoverTrackSchema, sourceFingerprint, createId, sha256, validateSourcePath, type VoiceoverTrack, type ShotSpec, type SourceProposal} from '@studio/studio-core';
 
 export interface SourceFile {path: string; content: string}
 export interface SourceManifest {
@@ -11,13 +11,15 @@ export interface SourceManifest {
   sourceHash: string;
   shots: ShotSpec[];
   files: Array<{path: string; hash: string}>;
+  voiceovers?: VoiceoverTrack[];
 }
 const SourceManifestSchema = z.object({schemaVersion: z.literal(1), sourceId: IdSchema,
   sourceHash: z.string().regex(/^[a-f0-9]{64}$/), shots: z.array(ShotSpecSchema).min(1).max(12),
   files: z.array(z.object({path: SourcePathSchema, hash: z.string().regex(/^[a-f0-9]{64}$/)}).strict()).min(1).max(20),
+  voiceovers: z.array(VoiceoverTrackSchema).max(12).optional(),
 }).strict();
 
-const allowedPackages = new Set(['react', 'react/jsx-runtime', 'remotion']);
+const allowedPackages = new Set(['react', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'remotion']);
 const forbiddenNames = new Set(['eval', 'Function', 'fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource',
   'Worker', 'SharedWorker', 'importScripts', 'require', 'process', 'module', 'global', 'globalThis',
   'window', 'document', 'navigator', 'location', 'parent', 'top', 'opener', 'localStorage', 'sessionStorage',
@@ -116,15 +118,44 @@ export async function readSourceFiles(projectDir: string, sourceId: string): Pro
     return {path: entry.path, content};
   }));
   if (new Set(files.map((file) => file.path)).size !== files.length) throw new StudioError('INVALID_SOURCE', 'Source manifest has duplicate paths.');
-  if (sha256(JSON.stringify({files, shots: manifest.shots})) !== manifest.sourceHash) throw new StudioError('SOURCE_CHANGED', 'Source manifest no longer matches its snapshot hash.');
+  if (sourceFingerprint(files, manifest.shots, manifest.voiceovers) !== manifest.sourceHash) throw new StudioError('SOURCE_CHANGED', 'Source manifest no longer matches its snapshot hash.');
+  await verifiedVoiceovers(base, manifest);
   return files;
 }
 
-export async function materializeSource(projectDir: string, input: SourceProposal, baseSourceId?: string): Promise<{sourceId: string; files: SourceFile[]}> {
+async function verifiedVoiceovers(base: string, manifest: SourceManifest): Promise<VoiceoverTrack[]> {
+  const tracks = manifest.voiceovers ?? [];
+  if (new Set(tracks.map(track => track.shotId)).size !== tracks.length || new Set(tracks.map(track => track.assetId)).size !== tracks.length)
+    throw new StudioError('INVALID_AUDIO', 'Duplicate voice-over tracks.');
+  for (const track of tracks) {
+    const shot = manifest.shots.find(shot => shot.id === track.shotId);
+    if (!shot || Math.ceil(track.durationMs * 30 / 1000) > shot.durationFrames) throw new StudioError('INVALID_AUDIO', 'Voice-over does not fit its shot.');
+    await assertDirectory(path.join(base, 'audio'));
+    const file = path.join(base, 'audio', `${track.assetId}.wav`);
+    const stat = await fs.lstat(file);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size < 44 || stat.size > 24_000_000) throw new StudioError('INVALID_AUDIO', 'Invalid voice-over file.');
+    const bytes = await fs.readFile(file);
+    if (sha256(bytes) !== track.hash || bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WAVE')
+      throw new StudioError('SOURCE_CHANGED', 'Voice-over file no longer matches its snapshot.');
+  }
+  return tracks;
+}
+
+export async function readSourceVoiceovers(projectDir: string, sourceId: string): Promise<VoiceoverTrack[]> {
+  await readSourceFiles(projectDir, sourceId);
+  return SourceManifestSchema.parse(JSON.parse(await fs.readFile(path.join(projectDir, 'source', sourceId, 'manifest.json'), 'utf8'))).voiceovers ?? [];
+}
+
+export async function materializeSource(projectDir: string, input: SourceProposal, baseSourceId?: string,
+  replacementAudio?: {track: VoiceoverTrack; file: string}): Promise<{sourceId: string; files: SourceFile[]}> {
   const proposal = SourceProposalSchema.parse(input);
   validateSourceFiles(proposal);
   await assertDirectory(projectDir);
   const filesByPath = new Map((baseSourceId ? await readSourceFiles(projectDir, baseSourceId) : []).map((file) => [file.path, file.content]));
+  const inherited = baseSourceId ? await readSourceVoiceovers(projectDir, baseSourceId) : [];
+  const voiceovers = inherited.filter(track => proposal.shots.some(shot => shot.id === track.shotId) && track.shotId !== replacementAudio?.track.shotId);
+  if (replacementAudio) voiceovers.push(VoiceoverTrackSchema.parse(replacementAudio.track));
+  voiceovers.sort((a, b) => a.shotId.localeCompare(b.shotId));
   for (const deleted of proposal.deletedFiles) {
     if (!filesByPath.delete(deleted)) throw new StudioError('INVALID_SOURCE', `Cannot delete unknown source file '${deleted}'.`);
   }
@@ -166,8 +197,14 @@ export async function materializeSource(projectDir: string, input: SourceProposa
     await fs.mkdir(path.dirname(destination), {recursive: true, mode: 0o700});
     await fs.writeFile(destination, file.content, {flag: 'wx', mode: 0o600});
   }
-  const manifest: SourceManifest = {schemaVersion: 1, sourceId, sourceHash: sha256(JSON.stringify({files, shots: proposal.shots})),
-    shots: proposal.shots, files: files.map((file) => ({path: file.path, hash: sha256(file.content)}))};
+  for (const track of voiceovers) {
+    await fs.mkdir(path.join(temporary, 'audio'), {recursive: true, mode: 0o700});
+    const from = replacementAudio?.track.assetId === track.assetId ? replacementAudio.file : path.join(projectDir, 'source', baseSourceId!, 'audio', `${track.assetId}.wav`);
+    await fs.copyFile(from, path.join(temporary, 'audio', `${track.assetId}.wav`));
+  }
+  const manifest: SourceManifest = {schemaVersion: 1, sourceId, sourceHash: sourceFingerprint(files, proposal.shots, voiceovers),
+    shots: proposal.shots, files: files.map((file) => ({path: file.path, hash: sha256(file.content)})), ...(voiceovers.length ? {voiceovers} : {})};
+  await verifiedVoiceovers(temporary, manifest);
   await fs.writeFile(path.join(temporary, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', {flag: 'wx', mode: 0o600});
   await fs.rename(temporary, path.join(sourceRoot, sourceId));
   return {sourceId, files};

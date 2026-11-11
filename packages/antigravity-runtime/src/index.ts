@@ -76,12 +76,38 @@ export function cleanJsonOutput(raw: string): string {
   return trimmed;
 }
 
+export function sanitizeJsonSchema(schema: unknown): unknown {
+  if (!schema || typeof schema !== 'object') {
+    return schema;
+  }
+  if (Array.isArray(schema)) {
+    return schema.map(sanitizeJsonSchema);
+  }
+
+  const obj = { ...(schema as Record<string, unknown>) };
+
+  const isNumericType =
+    obj.type === 'integer' ||
+    obj.type === 'number' ||
+    (Array.isArray(obj.type) && (obj.type.includes('integer') || obj.type.includes('number')));
+
+  if (isNumericType && 'enum' in obj) {
+    delete obj.enum;
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    obj[key] = sanitizeJsonSchema(value);
+  }
+
+  return obj;
+}
+
 export class AntigravityRuntime {
   public readonly cwd: string;
   public readonly executable: string;
   public readonly defaultModel: string;
 
-  private threads = new Map<string, { role: AntigravityRole; instructions?: string }>();
+  private threads = new Map<string, { role: AntigravityRole; instructions?: string; hasCompletedFirstTurn?: boolean }>();
   private activeTurns = new Map<string, ActiveTurnRecord>();
   private closing = false;
 
@@ -149,13 +175,14 @@ export class AntigravityRuntime {
     this.threads.set(threadId, {
       role: options.role,
       instructions: options.developerInstructions,
+      hasCompletedFirstTurn: false,
     });
     return threadId;
   }
 
   async resumeThread(threadId: string): Promise<string> {
     if (!this.threads.has(threadId)) {
-      this.threads.set(threadId, { role: 'brainstorm' });
+      this.threads.set(threadId, { role: 'brainstorm', hasCompletedFirstTurn: false });
     }
     return threadId;
   }
@@ -175,16 +202,26 @@ export class AntigravityRuntime {
     let schemaFilePath: string | null = null;
 
     try {
+      let thread = this.threads.get(options.threadId);
+      if (!thread) {
+        thread = { role: 'brainstorm', hasCompletedFirstTurn: false };
+        this.threads.set(options.threadId, thread);
+      }
+
       const args: string[] = [
-        '--conversation', options.threadId,
         '--model', this.defaultModel,
         '--output-format', 'json',
         '--dangerously-skip-permissions',
       ];
 
+      if (thread.hasCompletedFirstTurn) {
+        args.unshift('--conversation', options.threadId);
+      }
+
       if (options.outputSchema) {
         schemaFilePath = path.join(os.tmpdir(), `agy-schema-${turnId}.json`);
-        await fsp.writeFile(schemaFilePath, JSON.stringify(options.outputSchema, null, 2), 'utf8');
+        const sanitized = sanitizeJsonSchema(options.outputSchema);
+        await fsp.writeFile(schemaFilePath, JSON.stringify(sanitized, null, 2), 'utf8');
         args.push('--json-schema', schemaFilePath);
       }
 
@@ -249,6 +286,8 @@ export class AntigravityRuntime {
           `Antigravity process exited with code ${exitResult.code}: ${stderr.slice(0, 1000)}`
         );
       }
+
+      thread.hasCompletedFirstTurn = true;
 
       let parsed: { response?: string; structured_output?: unknown; status?: string } | null = null;
       try {

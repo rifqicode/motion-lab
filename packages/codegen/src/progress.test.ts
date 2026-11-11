@@ -67,36 +67,10 @@ describe('per-build progress callbacks (worker process fixture)', () => {
     expect(processMocks.spawn).toHaveBeenCalledTimes(1);
   }, 15_000);
 
-  it('checks daemon version and local image identity using one bounded deadline instead of docker info', async () => {
-    const image = `sha256:${'a'.repeat(64)}`;
-    processMocks.execFile.mockImplementation((...args: unknown[]) => {
-      const command = args[1] as string[];
-      const callback = args.at(-1);
-      if (typeof callback === 'function') callback(null, {stdout: command[0] === 'version' ? '29.3.0\n' : image + '\n', stderr: ''});
-    });
+  it('reports local node runtime availability directly without querying docker', async () => {
     const builder = new StudioBuilder({repoRoot: path.join(root, 'repo')});
-    expect(await builder.status()).toEqual({available: true, image});
-    const calls = processMocks.execFile.mock.calls.slice(-2);
-    expect(calls[0][1]).toEqual(['version', '--format', '{{.Server.Version}}']);
-    expect(calls[1][1]).toEqual(['image', 'inspect', 'devlikeapro/waha:latest', '--format', '{{.Id}}']);
-    const firstTimeout = (calls[0][2] as {timeout: number}).timeout;
-    const secondTimeout = (calls[1][2] as {timeout: number}).timeout;
-    expect(firstTimeout).toBeGreaterThan(0);
-    expect(firstTimeout).toBeLessThanOrEqual(20_000);
-    expect(secondTimeout).toBeGreaterThan(0);
-    expect(secondTimeout).toBeLessThanOrEqual(firstTimeout);
-  });
-
-  it.each([
-    {error: Object.assign(new Error('Fixture timeout'), {killed: true}), message: 'melewati batas 20 detik'},
-    {error: Object.assign(new Error('Fixture unavailable'), {code: 'ENOENT'}), message: 'Docker CLI belum tersedia'},
-    {error: Object.assign(new Error('Cannot connect'), {stderr: 'Cannot connect to the Docker daemon'}), message: 'Pastikan daemon aktif'},
-  ])('distinguishes unavailable runtime reasons without retry: $message', async ({error, message}) => {
-    const callsBefore = processMocks.execFile.mock.calls.length;
-    processMocks.execFile.mockImplementation((...args: unknown[]) => { const callback = args.at(-1); if (typeof callback === 'function') callback(error); });
-    const builder = new StudioBuilder({repoRoot: path.join(root, 'repo')});
-    expect(await builder.status()).toMatchObject({available: false, reason: expect.stringContaining(message)});
-    expect(processMocks.execFile.mock.calls.length - callsBefore).toBe(1);
+    expect(await builder.status()).toEqual({available: true, image: 'local-node'});
+    expect(processMocks.execFile).not.toHaveBeenCalled();
   });
 
   it.each([

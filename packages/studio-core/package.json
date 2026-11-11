@@ -8,7 +8,8 @@
   "exports": {
     ".": {"types": "./dist/index.d.ts", "import": "./dist/index.js"},
     "./brief": {"types": "./dist/brief.d.ts", "import": "./dist/brief.js"},
-    "./style": {"types": "./dist/style.d.ts", "import": "./dist/style.js"}
+    "./style": {"types": "./dist/style.d.ts", "import": "./dist/style.js"},
+    "./storyboard": {"types": "./dist/storyboard.d.ts", "import": "./dist/storyboard.js"}
   },
   "scripts": {"build": "tsc"},
   "dependencies": {"zod": "^3.23.8"},
